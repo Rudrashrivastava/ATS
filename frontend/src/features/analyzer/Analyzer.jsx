@@ -40,7 +40,6 @@ export default function Analyzer({ token }) {
       const endpoint = jobDesc ? '/api/resume/analyze-with-job' : '/api/resume/analyze';
       const res = await axios.post(endpoint, formData, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -51,8 +50,7 @@ export default function Analyzer({ token }) {
         const query = (res?.data?.strengths && res.data.strengths.length > 0) ? res.data.strengths[0] : 'developer';
         try {
           const jobRes = await axios.get('/api/jobs/suggestions', {
-            params: { query },
-            headers: { Authorization: `Bearer ${token}` }
+            params: { query }
           });
           const suggestions = [];
           const data = jobRes.data;
@@ -69,8 +67,7 @@ export default function Analyzer({ token }) {
 
           // Fetch suggested companies using the same query
           const compRes = await axios.get('/api/jobs/companies', {
-            params: { query },
-            headers: { Authorization: `Bearer ${token}` }
+            params: { query }
           });
           if (compRes.data && compRes.data.results) {
             setSuggestedCompanies(compRes.data.results.slice(0, 4));

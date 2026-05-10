@@ -17,9 +17,9 @@ export default function ResumeFit({ token }) {
       try {
         // Fetch Real Jobs from Glassdoor API (Proxied)
         const jobRes = await axios.get('/api/jobs/companies', {
-          params: { query },
-          headers: { Authorization: `Bearer ${token}` }
+          params: { query }
         });
+
         
         const realJobs = jobRes.data?.data?.jobs || [];
         setJobs(realJobs.length > 0 ? realJobs : getFallbackJobs(query));

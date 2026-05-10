@@ -7,12 +7,29 @@ import Auth from './features/auth/Auth';
 import Dashboard from './features/dashboard/Dashboard';
 import Analyzer from './features/analyzer/Analyzer';
 import ResumeFit from './features/analyzer/ResumeFit';
+import GlobalEcosystem from './features/dashboard/GlobalEcosystem';
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    const saved = localStorage.getItem('token');
+    if (saved) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${saved}`;
+    }
+    return saved;
+  });
+
+
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('token', token);
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('token');
+    }
+  }, [token]);
 
   const logout = () => {
-    localStorage.removeItem('token');
     setToken(null);
   };
 
@@ -31,6 +48,7 @@ function App() {
       axios.interceptors.response.eject(interceptor);
     };
   }, []);
+
 
   return (
     <Router>
@@ -56,6 +74,8 @@ function App() {
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/auth" />} />
             <Route path="/analyzer" element={token ? <Analyzer token={token} /> : <Navigate to="/auth" />} />
             <Route path="/yourresumefit" element={token ? <ResumeFit token={token} /> : <Navigate to="/auth" />} />
+            <Route path="/usersuse" element={token ? <GlobalEcosystem token={token} /> : <Navigate to="/auth" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </div>

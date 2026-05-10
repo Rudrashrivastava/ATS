@@ -26,8 +26,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         if (userRepository.findByUsername(request.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body(new AuthResponse(null, "Username already exists"));
+            return ResponseEntity.badRequest().body(new AuthResponse(null, "This email is already registered. Please login instead."));
         }
+
 
         User user = new User();
         user.setUsername(request.getEmail());
@@ -42,16 +43,28 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
-        User user = userRepository.findByUsername(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+        // 1. Check if user exists
+        java.util.Optional<User> userOpt = userRepository.findByUsername(request.getEmail());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(new AuthResponse(null, "User not found. Please register first."));
+        }
 
-        String jwtToken = jwtService.generateToken(user);
-        return ResponseEntity.ok(new AuthResponse(jwtToken, "Login successful"));
+        try {
+            // 2. Authenticate credentials
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            
+            User user = userOpt.get();
+            String jwtToken = jwtService.generateToken(user);
+            return ResponseEntity.ok(new AuthResponse(jwtToken, "Login successful"));
+            
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            return ResponseEntity.status(401).body(new AuthResponse(null, "Invalid credentials. Either email or password is wrong."));
+        }
     }
 }
+
 
 @Data
 @NoArgsConstructor

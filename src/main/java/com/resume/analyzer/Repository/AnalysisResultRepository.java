@@ -9,4 +9,13 @@ import java.util.List;
 @Repository
 public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, Long> {
     List<AnalysisResult> findByUserOrderByAnalysisDateDesc(User user);
+    
+    List<AnalysisResult> findTop5ByOrderByAnalysisDateDesc();
+    
+    List<AnalysisResult> findAllByOrderByAnalysisDateDesc();
+
+    @org.springframework.data.jpa.repository.Query("SELECT AVG(a.overallScore) FROM AnalysisResult a")
+
+    Double getAverageScore();
 }
+

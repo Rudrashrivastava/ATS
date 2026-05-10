@@ -23,10 +23,12 @@ export default function Auth({ setToken }) {
       if (isLogin) {
         if (res.data.token) {
           localStorage.setItem('token', res.data.token);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
           setToken(res.data.token);
-          navigate('/');
+          navigate('/', { replace: true });
         }
-      } else {
+      }
+ else {
         setSuccess('Registration successful! Please login.');
         setIsLogin(true);
         setFormData({ name: '', email: '', password: '' });
@@ -35,9 +37,11 @@ export default function Auth({ setToken }) {
       if (err.response?.status === 504 || err.code === 'ERR_NETWORK') {
          setError('Cannot connect to the neural core. Is the backend running?');
       } else {
-         setError(err.response?.data?.message || err.response?.data || 'Authentication failed');
+         const backendMessage = err.response?.data?.message || err.response?.data;
+         setError(backendMessage || 'Authentication failed');
       }
     }
+
     setLoading(false);
   };
 
