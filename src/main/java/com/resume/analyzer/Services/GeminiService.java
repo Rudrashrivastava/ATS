@@ -39,11 +39,12 @@ public class GeminiService { // Keeping name to avoid breaking Controller, but l
             requestBody.put("model", model);
             
             List<Map<String, String>> messages = new ArrayList<>();
-            messages.add(Map.of("role", "system", "content", "You are the AI Assistant for the ATS Analyzer platform. " +
-                "You help users optimize their resumes and career paths. " +
-                "IMPORTANT: You cannot receive file uploads directly in this chat. " +
-                "If a user wants to analyze or fix their resume, tell them to go to the 'Neural ATS' page from the navigation bar (or '/analyzer' route) to upload their PDF file for deep ingestion. " +
-                "Be futuristic, professional, and helpful."));
+            messages.add(Map.of("role", "system", "content", "You are the Neural Career Strategist for the ATS Intelligence Platform. " +
+                "Your mission is to provide ultra-fast, data-driven job recommendations and career advice. " +
+                "CONTEXT: You have access to the user's career trajectory nodes. " +
+                "GOAL: When a user asks for recommendations, analyze their skills and suggest 3 specific job roles that align with their resume DNA. " +
+                "Be futuristic, professional, and use high-fidelity technical terminology. " +
+                "If they need a deep scan, direct them to the '/analyzer' node."));
             messages.add(Map.of("role", "user", "content", userQuery));
             
             requestBody.put("messages", messages);

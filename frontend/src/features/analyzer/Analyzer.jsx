@@ -45,8 +45,10 @@ export default function Analyzer({ token }) {
     } catch (err) {
       clearInterval(interval);
       setProgress(0);
-      console.error(err);
-      alert('Analysis failed. Check backend connectivity or API keys.');
+      console.error("Neural Bridge Failure Details:", err);
+      const errorMsg = err.response?.data?.message || err.response?.data || err.message;
+      const status = err.response?.status || 'Unknown Status';
+      alert(`NEURAL BRIDGE FAILURE [${status}]: ${errorMsg}\n\nPlease check your terminal or backend logs.`);
     }
     setLoading(false);
   };

@@ -12,6 +12,10 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
     
     List<AnalysisResult> findTop5ByOrderByAnalysisDateDesc();
     
+    List<AnalysisResult> findTop5ByOrderByIdDesc();
+
+    List<AnalysisResult> findTop8ByOrderByIdDesc();
+    
     List<AnalysisResult> findAllByOrderByAnalysisDateDesc();
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT a.primaryRole) FROM AnalysisResult a")
