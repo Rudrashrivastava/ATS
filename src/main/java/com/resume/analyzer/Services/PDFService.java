@@ -28,8 +28,8 @@ public class PDFService {
                                 .builder()
                                 .withNumberOfTopTextLinesToDelete(0)
                                 .build())
-                        .withPagesPerDocument(1)
                         .build());
+
         return pdfDocumentReader.read().toString();
     }
 }

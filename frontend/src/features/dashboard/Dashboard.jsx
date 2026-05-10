@@ -7,19 +7,20 @@ export default function Dashboard({ token }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchHistory = async () => {
       try {
-        const res = await axios.get('/api/jobs', {
+        const response = await axios.get('/api/resume/history', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setJobs(res.data);
+        setJobs(response.data);
       } catch (err) {
         console.error(err);
-        setError('Failed to fetch jobs. Make sure the backend is running.');
+        setError('Market history synchronization failed.');
       }
     };
-    fetchJobs();
+    fetchHistory();
   }, [token]);
+
 
   return (
     <div className="neural-container">
@@ -67,32 +68,42 @@ export default function Dashboard({ token }) {
           {error && <div style={{color: 'var(--error)', marginBottom: '16px', background: 'rgba(255, 23, 68, 0.1)', padding: '12px', borderRadius: '8px'}}>{error}</div>}
           
           <div className="jobs-grid">
-            {jobs.map(job => (
-              <div key={job.id} className="glass-card job-card">
+            {jobs.length > 0 ? jobs.map(result => (
+              <div key={result.id} className="glass-card job-card">
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                   <div>
                     <div style={{padding: '8px', background: 'rgba(0, 229, 255, 0.1)', borderRadius: '8px', display: 'inline-block', marginBottom: '12px'}}>
                       <Activity size={20} color="var(--primary)" />
                     </div>
-                    <h3 style={{fontSize: '18px', marginBottom: '4px'}}>{job.title}</h3>
-                    <div className="job-meta"><span>Post-ID: {job.id}</span></div>
+                    <h3 style={{fontSize: '18px', marginBottom: '4px'}}>{result.primaryRole || 'General Profile'}</h3>
+                    <div className="job-meta"><span>Scanned: {new Date(result.analysisDate).toLocaleDateString()}</span></div>
                   </div>
-                  <div className="match-badge">HIGH PRIO</div>
+                  <div className="match-badge" style={{background: result.overallScore > 80 ? 'var(--primary-glow)' : 'rgba(255,255,255,0.1)'}}>
+                    {result.overallScore > 80 ? 'OPTIMIZED' : 'NEEDS TWEAK'}
+                  </div>
                 </div>
                 
                 <div style={{display: 'flex', gap: '24px', marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px'}}>
                   <div>
-                    <div className="stat-value" style={{fontSize: '24px', color: 'var(--primary)'}}>{Math.floor(Math.random() * 50) + 10}</div>
-                    <div className="stat-label" style={{fontSize: '9px'}}>CANDIDATES</div>
+                    <div className="stat-value" style={{fontSize: '24px', color: 'var(--primary)'}}>{result.overallScore}%</div>
+                    <div className="stat-label" style={{fontSize: '9px'}}>NEURAL SCORE</div>
                   </div>
-                  <div>
-                    <div className="stat-value" style={{fontSize: '24px'}}>{Math.floor(Math.random() * 20) + 70}%</div>
-                    <div className="stat-label" style={{fontSize: '9px'}}>AVG. MATCH</div>
+                  <div style={{flex: 1}}>
+                    <div className="stat-label" style={{fontSize: '9px', marginBottom: '4px'}}>TOP RECOMMENDATION</div>
+                    <div style={{fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4', maxHeight: '32px', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                      {result.recommendation}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div style={{textAlign: 'center', gridColumn: '1/-1', padding: '40px', opacity: 0.5}}>
+                <Cpu size={48} style={{marginBottom: '16px'}} />
+                <p>No historical trajectories detected. Start a new analysis.</p>
+              </div>
+            )}
           </div>
+
         </div>
 
         {/* RIGHT COLUMN: Sidebar */}

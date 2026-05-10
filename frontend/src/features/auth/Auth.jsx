@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Lock, Mail, User, ShieldAlert } from 'lucide-react';
 
 export default function Auth({ setToken }) {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -22,6 +24,7 @@ export default function Auth({ setToken }) {
         if (res.data.token) {
           localStorage.setItem('token', res.data.token);
           setToken(res.data.token);
+          navigate('/');
         }
       } else {
         setSuccess('Registration successful! Please login.');

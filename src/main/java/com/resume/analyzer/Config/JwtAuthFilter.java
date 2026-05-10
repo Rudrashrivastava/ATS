@@ -37,10 +37,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        jwt = authHeader.substring(7);
-        username = jwtService.extractUsername(jwt);
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            try {
+        try {
+            jwt = authHeader.substring(7);
+            username = jwtService.extractUsername(jwt);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -53,10 +53,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-            } catch (org.springframework.security.core.userdetails.UsernameNotFoundException e) {
-                // User was deleted or not found. Do not set authentication.
-                // It will naturally result in a 401/403 since authentication is required for protected routes.
             }
+        } catch (Exception e) {
+            // Token is invalid, expired, or user not found. 
+            // We ignore the exception and leave the SecurityContext empty.
+            // The request will be blocked by Spring Security and return 401 via AuthenticationEntryPoint.
         }
         filterChain.doFilter(request, response);
     }

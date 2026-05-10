@@ -4,6 +4,8 @@ package com.resume.analyzer.Services;
 import com.resume.analyzer.Model.ATSScore;
 // import com.resume.analyzer.Model.Settings;
 // import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,47 +25,52 @@ public class ATSScoreService {
     }
 
     private static final String SYSTEM_PROMPT = """
-        You are an expert ATS (Applicant Tracking System) analyzer. Your task is to:
-        1. Evaluate the provided resume against standard ATS criteria or a specific job description if provided.
-        2. Score the resume on a scale of 1-100 based on ATS compatibility.
-        3. Provide specific feedback in the following categories:
-           - Format and structure (20 points)
-           - Keywords and relevance (30 points)
-           - Quantifiable achievements (20 points)
-           - Skills and qualifications (30 points)
-        4. List specific strengths and weaknesses.
-        5. Give actionable recommendations to improve the ATS score.
+        You are an elite Technical Recruiter and ATS Optimization Expert. Your mission is to provide a brutal, highly accurate, and objective analysis of resumes.
         
-        Return your analysis in a valid JSON format with the following structure:
+        CRITICAL SCORING RULES:
+        1. BE DYNAMIC: Every resume is different. Never default to a middle-ground score like 75. 
+        2. BE TOUGH: High scores (90+) are only for perfect matches. Low scores (under 50) are for poor quality or complete mismatches.
+        3. JD ALIGNMENT: If a Job Description (JD) is provided, the 'Keywords and relevance' and 'Skills' scores MUST reflect how well the candidate fits that specific role. If there is a mismatch, the score MUST drop significantly.
+        4. STRUCTURE: Evaluate formatting strictly.
+        
+        SCORING BREAKDOWN:
+           - Format and structure (20 points max)
+           - Keywords and relevance (30 points max)
+           - Quantifiable achievements (20 points max)
+           - Skills and qualifications (30 points max)
+        
+        Return your analysis ONLY in a valid JSON format:
         {
           "score": [overall score 1-100],
-          "recommendation": "[brief overall recommendation]",
-          "strengths": ["strength1", "strength2", ...],
-          "weaknesses": ["weakness1", "weakness2", ...],
+          "recommendation": "[concise actionable advice]",
+          "strengths": ["list of top 3 professional strengths"],
+          "weaknesses": ["list of top 3 critical areas for improvement"],
+          "marketSearchQuery": "[a concise 1-3 word job title representing the candidate's primary role, e.g., 'Java Developer', 'Project Manager']",
           "categoryScores": {
-            "format": [score 1-20],
-            "keywords": [score 1-30],
-            "achievements": [score 1-20],
-            "skills": [score 1-30]
+            "format": [score 0-20],
+            "keywords": [score 0-30],
+            "achievements": [score 0-20],
+            "skills": [score 0-30]
           }
         }
-        
-        Make your evaluation comprehensive but concise.
         """;
     
     private static final String USER_PROMPT_WITHOUT_JD = """
-        Please analyze this resume for ATS compatibility:
+        Please perform a deep-dive ATS analysis on the following resume text. 
+        Identify the primary role and evaluate general industry standards.
         
+        RESUME CONTENT:
         {resumeText}
         """;
     
     private static final String USER_PROMPT_WITH_JD = """
-        Please analyze this resume for ATS compatibility with the following job description:
+        Please perform a targeted ATS analysis comparing the following resume against the specific job description provided.
+        Calculate the compatibility score based strictly on the requirements listed in the JD.
         
         JOB DESCRIPTION:
         {jobDescription}
         
-        RESUME:
+        RESUME CONTENT:
         {resumeText}
         """;
     
@@ -89,44 +96,85 @@ public class ATSScoreService {
             if (chatClient == null) {
                 return createErrorScore("AI service is not configured. Please set up your API key in application.properties.");
             }
-            String userPromptTemplate;
-            if (jobDescription != null && !jobDescription.isEmpty()) {
-                userPromptTemplate = USER_PROMPT_WITH_JD;
-                userPromptTemplate=userPromptTemplate.replace("{jobDescription}",jobDescription);
+
+            String finalUserPrompt;
+            if (jobDescription != null && !jobDescription.trim().isEmpty()) {
+                finalUserPrompt = USER_PROMPT_WITH_JD
+                        .replace("{jobDescription}", jobDescription)
+                        .replace("{resumeText}", resumeText);
+                log.info("Performing Targeted Analysis (Resume + JD)");
             } else {
-                userPromptTemplate = USER_PROMPT_WITHOUT_JD;
+                finalUserPrompt = USER_PROMPT_WITHOUT_JD
+                        .replace("{resumeText}", resumeText);
+                log.info("Performing General Analysis (Resume Only)");
             }
-            userPromptTemplate=userPromptTemplate.replace("{resumeText}",resumeText);
-            log.info("Sending resume to AI for ATS analysis");
 
-            String finalUserPromptTemplate = userPromptTemplate;
+            log.debug("Full Prompt to AI: \nSYSTEM: {}\nUSER: {}", SYSTEM_PROMPT, finalUserPrompt);
+
             String content = chatClient.prompt()
-                    .user(u->u.text(finalUserPromptTemplate))
+                    .user(finalUserPrompt)
                     .system(SYSTEM_PROMPT)
-                    .stream()
-                    .content()
-                    .collectList()
-                    .map(list->String.join("",list))
-                    .block();
+                    .call()
+                    .content();
 
-            log.debug("AI response: {}", content);
+            log.info("AI Analysis Received successfully.");
+            log.debug("Raw AI response content: {}", content);
             
             return parseResponse(content);
         } catch (Exception e) {
-            log.error("Error calculating ATS score", e);
-            return createErrorScore("API Error: " + e.getMessage());
+            log.error("Critical error during AI ATS calculation", e);
+            return createErrorScore("Analysis Engine Error: " + e.getMessage());
         }
     }
     
     private ATSScore parseResponse(String jsonResponse) {
         try {
-            // For simplicity, we're using string manipulation here
-            // In a production app, use a proper JSON parser like Jackson
+            // Remove markdown code blocks if present
+            String cleanJson = jsonResponse.trim();
+            if (cleanJson.startsWith("```")) {
+                cleanJson = cleanJson.substring(cleanJson.indexOf("{"), cleanJson.lastIndexOf("}") + 1);
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(cleanJson);
+
+            int score = root.path("score").asInt();
+            String recommendation = root.path("recommendation").asText();
+            String marketQuery = root.path("marketSearchQuery").asText("developer");
             
-            // Sample implementation - in real code, use Jackson or Gson
+            List<String> strengths = new ArrayList<>();
+            root.path("strengths").forEach(s -> strengths.add(s.asText()));
+            
+            List<String> weaknesses = new ArrayList<>();
+            root.path("weaknesses").forEach(w -> weaknesses.add(w.asText()));
+            
+            Map<String, Integer> categoryScores = new HashMap<>();
+            JsonNode catNode = root.path("categoryScores");
+            categoryScores.put("format", catNode.path("format").asInt());
+            categoryScores.put("keywords", catNode.path("keywords").asInt());
+            categoryScores.put("achievements", catNode.path("achievements").asInt());
+            categoryScores.put("skills", catNode.path("skills").asInt());
+            
+            return ATSScore.builder()
+                    .score(score)
+                    .recommendation(recommendation)
+                    .marketSearchQuery(marketQuery)
+                    .strengths(strengths)
+                    .weaknesses(weaknesses)
+                    .categoryScores(categoryScores)
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("Error parsing AI JSON response. Raw content: {}", jsonResponse, e);
+            // Fallback to regex if Jackson fails (unlikely if prompt is followed)
+            return parseResponseLegacy(jsonResponse);
+        }
+    }
+
+    private ATSScore parseResponseLegacy(String jsonResponse) {
+        try {
             int score = extractIntValue(jsonResponse, "score");
             String recommendation = extractStringValue(jsonResponse, "recommendation");
-            
             List<String> strengths = extractStringList(jsonResponse, "strengths");
             List<String> weaknesses = extractStringList(jsonResponse, "weaknesses");
             
@@ -143,10 +191,8 @@ public class ATSScoreService {
                     .weaknesses(weaknesses)
                     .categoryScores(categoryScores)
                     .build();
-                    
         } catch (Exception e) {
-            log.error("Error parsing AI response", e);
-            return createErrorScore("Unable to analyze resume properly. Please try again.");
+            return createErrorScore("Parsing failure: " + e.getMessage());
         }
     }
     

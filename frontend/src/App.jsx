@@ -6,6 +6,7 @@ import { LogOut, Activity } from 'lucide-react';
 import Auth from './features/auth/Auth';
 import Dashboard from './features/dashboard/Dashboard';
 import Analyzer from './features/analyzer/Analyzer';
+import ResumeFit from './features/analyzer/ResumeFit';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -54,6 +55,7 @@ function App() {
             <Route path="/auth" element={!token ? <Auth setToken={setToken} /> : <Navigate to="/" />} />
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/auth" />} />
             <Route path="/analyzer" element={token ? <Analyzer token={token} /> : <Navigate to="/auth" />} />
+            <Route path="/yourresumefit" element={token ? <ResumeFit token={token} /> : <Navigate to="/auth" />} />
           </Routes>
         </div>
       </div>

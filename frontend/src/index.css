@@ -20,6 +20,18 @@
   box-sizing: border-box;
 }
 
+/* Hide scrollbars globally */
+html, body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
+
 body {
   background-color: var(--bg-color);
   background-image: 
@@ -502,4 +514,91 @@ h1, h2, h3, .brand {
   justify-content: center;
   align-items: center;
   text-align: center;
+}
+/* Neural Suggestions Reveal Styles */
+.suggestions-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.job-node, .entity-node {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.job-node:hover {
+  transform: scale(1.02) translateY(-5px);
+  background: rgba(0, 229, 255, 0.05) !important;
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
+}
+
+.entity-node:hover {
+  transform: scale(1.02);
+  background: rgba(213, 0, 249, 0.05) !important;
+  border-color: var(--secondary);
+  box-shadow: 0 10px 30px rgba(213, 0, 249, 0.1);
+}
+
+.node-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, var(--primary-glow) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.job-node:hover .node-glow {
+  opacity: 0.15;
+}
+
+.badge-neural {
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid var(--primary-glow);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--secondary);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--secondary);
+  position: relative;
+}
+
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--secondary);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.neon-icon-alt {
+  color: var(--secondary);
+  filter: drop-shadow(0 0 5px var(--secondary));
 }

@@ -16,4 +16,5 @@ public class ATSScore {
     private List<String> strengths;
     private List<String> weaknesses;
     private Map<String, Integer> categoryScores;
+    private String marketSearchQuery;
 }
