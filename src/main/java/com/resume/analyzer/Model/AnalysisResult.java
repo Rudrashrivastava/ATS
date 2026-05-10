@@ -25,10 +25,17 @@ public class AnalysisResult {
 
     private int overallScore;
     
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String recommendation;
     
     private String primaryRole;
+    
+    // AI GENERATED CAREER DNA (STORED AS JSON)
+    @Column(columnDefinition = "TEXT")
+    private String trajectoryJson;
+    
+    @Column(columnDefinition = "TEXT")
+    private String opportunitiesJson;
     
     private LocalDateTime analysisDate;
 

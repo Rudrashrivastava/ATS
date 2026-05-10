@@ -1,6 +1,5 @@
 package com.resume.analyzer.Controller;
 
-
 import com.resume.analyzer.Model.ATSScore;
 import com.resume.analyzer.Model.AnalysisResult;
 import com.resume.analyzer.Model.User;
@@ -9,6 +8,7 @@ import com.resume.analyzer.Repository.UserRepository;
 import com.resume.analyzer.Services.ATSScoreService;
 import com.resume.analyzer.Services.PDFService;
 import com.resume.analyzer.Services.RepoService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +29,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/resume")
 public class ResumeController {
-    @Autowired
     private final PDFService pdfService;
-    @Autowired
     private final ATSScoreService atsScoreService;
     private final RepoService repoService;
     private final AnalysisResultRepository analysisResultRepository;
     private final UserRepository userRepository;
-
+    private final ObjectMapper objectMapper;
 
     @PostMapping(value = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ATSScore> analyzeResume(@RequestParam("file") MultipartFile file) {
@@ -46,11 +44,8 @@ public class ResumeController {
             ATSScore score = atsScoreService.calculateScore(resumeText);
             saveResult(score);
             return ResponseEntity.ok(score);
-        } catch (IOException e) {
-            log.error("Error processing PDF file", e);
-            return ResponseEntity.badRequest().build();
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid file submission", e);
+        } catch (Exception e) {
+            log.error("Analysis Failed", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -65,11 +60,8 @@ public class ResumeController {
             ATSScore score = atsScoreService.calculateScore(resumeText, jobDescription);
             saveResult(score);
             return ResponseEntity.ok(score);
-        } catch (IOException e) {
-            log.error("Error processing PDF file", e);
-            return ResponseEntity.badRequest().build();
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid file submission", e);
+        } catch (Exception e) {
+            log.error("Context Analysis Failed", e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -84,16 +76,6 @@ public class ResumeController {
         return ResponseEntity.notFound().build();
     }
 
-    @GetMapping("/global-history")
-    public ResponseEntity<List<AnalysisResult>> getGlobalHistory() {
-        List<AnalysisResult> history = analysisResultRepository.findTop5ByOrderByAnalysisDateDesc();
-        if (history.isEmpty()) {
-            log.info("Date-based history empty, using ID fallback");
-            history = analysisResultRepository.findTop5ByOrderByIdDesc();
-        }
-        return ResponseEntity.ok(history);
-    }
-
     @GetMapping("/all-history")
     public ResponseEntity<List<AnalysisResult>> getAllHistory() {
         return ResponseEntity.ok(analysisResultRepository.findAllByOrderByAnalysisDateDesc());
@@ -104,12 +86,10 @@ public class ResumeController {
         long total = analysisResultRepository.count();
         Double avg = analysisResultRepository.getAverageScore();
         long uniqueRoles = analysisResultRepository.countUniqueRoles();
-        
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalProcessed", total);
         stats.put("avgMatch", avg != null ? Math.round(avg * 10.0) / 10.0 : 0.0);
         stats.put("activeEngines", uniqueRoles);
-        
         return ResponseEntity.ok(stats);
     }
 
@@ -123,11 +103,13 @@ public class ResumeController {
                         .overallScore(score.getScore())
                         .recommendation(score.getRecommendation())
                         .primaryRole(score.getMarketSearchQuery())
+                        .trajectoryJson(objectMapper.writeValueAsString(score.getTrajectory()))
+                        .opportunitiesJson(objectMapper.writeValueAsString(score.getOpportunities()))
                         .build();
                 analysisResultRepository.save(result);
             }
         } catch (Exception e) {
-            log.error("Failed to save", e);
+            log.error("Persistence Failed", e);
         }
     }
 

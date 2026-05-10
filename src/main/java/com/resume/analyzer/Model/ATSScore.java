@@ -1,10 +1,7 @@
 package com.resume.analyzer.Model;
 
-
 import lombok.Builder;
 import lombok.Data;
-
-
 import java.util.List;
 import java.util.Map;
 
@@ -17,4 +14,8 @@ public class ATSScore {
     private List<String> weaknesses;
     private Map<String, Integer> categoryScores;
     private String marketSearchQuery;
+    
+    // AI GENERATED CAREER DNA
+    private List<String> trajectory;
+    private List<Map<String, String>> opportunities;
 }
