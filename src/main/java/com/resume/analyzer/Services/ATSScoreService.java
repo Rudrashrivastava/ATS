@@ -30,22 +30,16 @@ public class ATSScoreService {
         CRITICAL SCORING RULES:
         1. BE DYNAMIC: Every resume is different. Never default to a middle-ground score like 75. 
         2. BE TOUGH: High scores (90+) are only for perfect matches. Low scores (under 50) are for poor quality or complete mismatches.
-        3. JD ALIGNMENT: If a Job Description (JD) is provided, the 'Keywords and relevance' and 'Skills' scores MUST reflect how well the candidate fits that specific role. If there is a mismatch, the score MUST drop significantly.
-        4. STRUCTURE: Evaluate formatting strictly.
-        
-        SCORING BREAKDOWN:
-           - Format and structure (20 points max)
-           - Keywords and relevance (30 points max)
-           - Quantifiable achievements (20 points max)
-           - Skills and qualifications (30 points max)
+        3. JD ALIGNMENT: If a Job Description (JD) is provided, the 'Keywords and relevance' and 'Skills' scores MUST reflect how well the candidate fits that specific role. 
+        4. MISMATCH DETECTION: If the resume is completely irrelevant to the target job (e.g. a chef applying for a developer role), the overall score MUST be below 20%.
         
         Return your analysis ONLY in a valid JSON format:
         {
           "score": [overall score 1-100],
-          "recommendation": "[concise actionable advice]",
+          "recommendation": "[concise actionable advice, mention mismatch if it exists]",
           "strengths": ["list of top 3 professional strengths"],
           "weaknesses": ["list of top 3 critical areas for improvement"],
-          "marketSearchQuery": "[a concise 1-3 word job title representing the candidate's primary role, e.g., 'Java Developer', 'Project Manager']",
+          "marketSearchQuery": "[IDENTIFY THE CANDIDATE'S ACTUAL ROLE based on the resume text, NOT the target job. If they are a student, say 'Student'. If they are a mismatched professional, say their actual title (e.g. 'Customer Service Representative')]",
           "categoryScores": {
             "format": [score 0-20],
             "keywords": [score 0-30],
@@ -129,10 +123,13 @@ public class ATSScoreService {
     
     private ATSScore parseResponse(String jsonResponse) {
         try {
-            // Remove markdown code blocks if present
+            // Remove markdown code blocks and any leading/trailing text
             String cleanJson = jsonResponse.trim();
-            if (cleanJson.startsWith("```")) {
-                cleanJson = cleanJson.substring(cleanJson.indexOf("{"), cleanJson.lastIndexOf("}") + 1);
+            int firstBrace = cleanJson.indexOf("{");
+            int lastBrace = cleanJson.lastIndexOf("}");
+            
+            if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+                cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
             }
 
             ObjectMapper mapper = new ObjectMapper();
@@ -166,7 +163,7 @@ public class ATSScoreService {
                     
         } catch (Exception e) {
             log.error("Error parsing AI JSON response. Raw content: {}", jsonResponse, e);
-            // Fallback to regex if Jackson fails (unlikely if prompt is followed)
+            // Fallback to regex if Jackson fails
             return parseResponseLegacy(jsonResponse);
         }
     }
@@ -175,6 +172,9 @@ public class ATSScoreService {
         try {
             int score = extractIntValue(jsonResponse, "score");
             String recommendation = extractStringValue(jsonResponse, "recommendation");
+            String marketQuery = extractStringValue(jsonResponse, "marketSearchQuery");
+            if (marketQuery == null || marketQuery.isEmpty()) marketQuery = "developer";
+            
             List<String> strengths = extractStringList(jsonResponse, "strengths");
             List<String> weaknesses = extractStringList(jsonResponse, "weaknesses");
             
@@ -187,6 +187,7 @@ public class ATSScoreService {
             return ATSScore.builder()
                     .score(score)
                     .recommendation(recommendation)
+                    .marketSearchQuery(marketQuery)
                     .strengths(strengths)
                     .weaknesses(weaknesses)
                     .categoryScores(categoryScores)

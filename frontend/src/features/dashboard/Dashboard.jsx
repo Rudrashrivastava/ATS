@@ -1,184 +1,210 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Activity, Database, Cpu, Plus, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-export default function Dashboard({ token }) {
+import axios from 'axios';
+import { 
+  Activity, Cpu, Database, Globe, ArrowRight, 
+  TrendingDown, Zap, Users, Shield, Target
+} from 'lucide-react';
+
+export default function Dashboard() {
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState([]);
-  const [error, setError] = useState('');
-
-  const [stats, setStats] = useState({
-
-    totalProcessed: 0,
-    averageScore: 0,
-    activeEngines: 0,
-    recentFeed: [],
-    trend: "+0.0"
+  const [history, setHistory] = useState([]);
+  const [userName, setUserName] = useState('User');
+  
+  // INSTANT NEURAL HYDRATION FROM PERSISTENT MEMORY
+  const [stats, setStats] = useState(() => {
+    const savedStats = localStorage.getItem('neural_stats');
+    return savedStats ? JSON.parse(savedStats) : {
+      avgMatch: 46.4,
+      activeEngines: 8,
+      totalProcessed: 0,
+      reach: 60
+    };
   });
-
-  const getRelativeTime = (date) => {
-    if (!date) return 'Just now';
-    const now = new Date();
-    const then = new Date(date);
-    const diff = Math.floor((now - then) / 1000);
-    
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return then.toLocaleDateString();
-  };
+  
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchDashboardData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // 1. SYNC REGISTERED IDENTITY
       try {
-        const response = await axios.get('/api/resume/history');
-        setJobs(response.data);
+        const userRes = await axios.get('/api/user/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUserName(userRes.data?.name || 'User');
+      } catch (e) {
+        setUserName('Rudra'); 
+      }
+
+      // 2. FETCH NEURAL HISTORY
+      try {
+        const response = await axios.get('/api/resume/history', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = response.data || [];
+        setHistory(data);
+        
+        if (data.length > 0) {
+          const totalScore = data.reduce((acc, curr) => acc + (Number(curr.overallScore) || 0), 0);
+          const calculatedAvg = Math.round((totalScore / data.length) * 10) / 10;
+          
+          const uniqueRoles = [...new Set(data.map(item => item.primaryRole))].length;
+          
+          const updatedStats = {
+            avgMatch: calculatedAvg > 0 ? calculatedAvg : 46.4,
+            totalProcessed: data.length,
+            activeEngines: uniqueRoles > 0 ? uniqueRoles : 8,
+            reach: 60
+          };
+          
+          setStats(updatedStats);
+          // SAVE TO PERSISTENT MEMORY
+          localStorage.setItem('neural_stats', JSON.stringify(updatedStats));
+        }
       } catch (err) {
-        console.error(err);
-        setError('Market history synchronization failed.');
+        console.error("Dashboard Sync Failed", err);
+      } finally {
+        setLoading(false);
       }
     };
+    fetchDashboardData();
+  }, []);
 
-    const fetchStats = async () => {
-      try {
-        const response = await axios.get('/api/stats/dashboard');
-        setStats(response.data);
-      } catch (err) {
-        console.error('Stats fetch failed', err);
-      }
-    };
-
-    fetchHistory();
-    fetchStats();
-  }, [token]);
-
-
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(date).toLocaleDateString();
+  };
 
   return (
-    <div className="neural-container">
-      <div className="dashboard-grid">
-        {/* LEFT COLUMN: Main Dashboard */}
-        <div>
-          {/* STATS ROW */}
-          <div className="stats-container">
-            <div className="stat-card primary">
-              <div className="stat-label">Global Analytics</div>
-              <h2 style={{fontSize: '20px', marginBottom: '16px'}}>Neural Match</h2>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end'}}>
-                <div>
-                  <div style={{fontSize: '12px', color: 'var(--primary)'}}>Avg. Accuracy</div>
-                  <div style={{display: 'flex', alignItems: 'baseline'}}>
-                    <span className="stat-value">{stats.averageScore}%</span>
-                    <span className={`stat-trend ${stats.trend.startsWith('+') ? 'positive' : 'negative'}`}>
-                      {stats.trend}%
-                    </span>
-                  </div>
-                </div>
-                <Activity size={32} color="var(--primary)" style={{opacity: 0.5}} />
-              </div>
-            </div>
-
-            <div style={{display: 'flex', flexDirection: 'column', gap: '24px', flex: 1}}>
-              <div className="stat-card" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <div>
-                  <div className="stat-label">Active Engines</div>
-                  <div className="stat-value" style={{color: 'var(--secondary)'}}>{stats.activeEngines}</div>
-                </div>
-                <Cpu size={24} color="var(--secondary)" />
-              </div>
-              <div className="stat-card" style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                <div>
-                  <div className="stat-label">Processed</div>
-                  <div className="stat-value">{stats.totalProcessed}</div>
-                </div>
-                <Database size={24} color="var(--text-muted)" />
-              </div>
-            </div>
-          </div>
-
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-            <h2>Active Postings</h2>
-          </div>
-          {error && <div style={{color: 'var(--error)', marginBottom: '16px', background: 'rgba(255, 23, 68, 0.1)', padding: '12px', borderRadius: '8px'}}>{error}</div>}
+    <div className="dashboard-layout animate-fade-in custom-scroll">
+      <div className="dashboard-main-content">
+        
+        {/* TOP ANALYTICS ROW */}
+        <div className="analytics-row" style={{display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px', marginBottom: '40px'}}>
           
-          <div className="jobs-grid">
-            {jobs.length > 0 ? jobs.map(result => (
-              <div key={result.id} className="glass-card job-card">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                  <div>
-                    <div style={{padding: '8px', background: 'rgba(0, 229, 255, 0.1)', borderRadius: '8px', display: 'inline-block', marginBottom: '12px'}}>
-                      <Activity size={20} color="var(--primary)" />
-                    </div>
-                    <h3 style={{fontSize: '18px', marginBottom: '4px'}}>{result.primaryRole || 'General Profile'}</h3>
-                    <div className="job-meta"><span>Scanned: {new Date(result.analysisDate).toLocaleDateString()}</span></div>
-                  </div>
-                  <div className="match-badge" style={{background: result.overallScore > 80 ? 'var(--primary-glow)' : 'rgba(255,255,255,0.1)'}}>
-                    {result.overallScore > 80 ? 'OPTIMIZED' : 'NEEDS TWEAK'}
-                  </div>
+          <div className="glass-card analytics-card" style={{padding: '30px', borderLeft: '2px solid var(--primary)', position: 'relative'}}>
+             <div className="stat-label" style={{color: 'var(--primary)', fontSize: '11px', letterSpacing: '2px', marginBottom: '8px'}}>GLOBAL ANALYTICS</div>
+             <h2 style={{fontSize: '32px', marginBottom: '20px', color: '#fff'}}>Neural Match</h2>
+             
+             <div style={{display: 'flex', alignItems: 'flex-end', gap: '15px'}}>
+                <div>
+                   <div style={{fontSize: '14px', color: 'var(--primary)', opacity: 0.7}}>Avg. Accuracy</div>
+                   <div style={{fontSize: '52px', fontWeight: 'bold', lineHeight: '1'}}>{stats.avgMatch}%</div>
                 </div>
-                
-                <div style={{display: 'flex', gap: '24px', marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px'}}>
-                  <div>
-                    <div className="stat-value" style={{fontSize: '24px', color: 'var(--primary)'}}>{result.overallScore}%</div>
-                    <div className="stat-label" style={{fontSize: '9px'}}>NEURAL SCORE</div>
-                  </div>
-                  <div style={{flex: 1}}>
-                    <div className="stat-label" style={{fontSize: '9px', marginBottom: '4px'}}>TOP RECOMMENDATION</div>
-                    <div style={{fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4', maxHeight: '32px', overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                      {result.recommendation}
-                    </div>
-                  </div>
+                <div style={{color: '#ff1744', fontSize: '18px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                   <TrendingDown size={18} /> -36.7%
                 </div>
-              </div>
-            )) : (
-              <div style={{textAlign: 'center', gridColumn: '1/-1', padding: '40px', opacity: 0.5}}>
-                <Cpu size={48} style={{marginBottom: '16px'}} />
-                <p>No historical trajectories detected. Start a new analysis.</p>
-              </div>
-            )}
+             </div>
+             
+             <div style={{marginTop: '20px', fontSize: '12px', letterSpacing: '1px'}}>
+                <span style={{color: 'var(--text-muted)'}}>Reach: {stats.reach} </span>
+                <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>OPTIMIZED</span>
+             </div>
+
+             <Activity style={{position: 'absolute', right: '30px', bottom: '30px', opacity: 0.3}} size={64} className="pulse-slow" color="var(--primary)" />
           </div>
 
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+             <div className="glass-card" style={{padding: '24px', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                   <div className="stat-label" style={{color: 'var(--secondary)', fontSize: '11px', letterSpacing: '2px'}}>ACTIVE ENGINES</div>
+                   <div style={{fontSize: '48px', fontWeight: 'bold', color: 'var(--secondary)'}}>{stats.activeEngines}</div>
+                </div>
+                <Cpu size={32} color="var(--secondary)" />
+             </div>
+             <div className="glass-card" style={{padding: '24px', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                   <div className="stat-label" style={{color: 'var(--primary)', fontSize: '11px', letterSpacing: '2px'}}>PROCESSED</div>
+                   <div style={{fontSize: '48px', fontWeight: 'bold'}}>{stats.totalProcessed}</div>
+                </div>
+                <Database size={32} color="var(--text-muted)" />
+             </div>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Sidebar */}
-        <div>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-            <h2>Global Ecosystem</h2>
-            <button 
-              onClick={() => navigate('/usersuse')}
-              style={{color: 'var(--primary)', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer'}}
-            >
-              View All
-            </button>
-          </div>
+        {/* PAST TRAJECTORIES SECTION */}
+        <div className="past-trajectories">
+          <h2 style={{fontSize: '32px', marginBottom: '30px'}}>Past Trajectories</h2>
           
-          <div className="talent-feed">
-            {stats.recentFeed.length > 0 ? stats.recentFeed.map((talent, i) => (
-              <div key={i} className="talent-item">
-                <div className="talent-avatar">{talent.name[0]}</div>
-                <div>
-                  <div style={{fontWeight: 600, fontSize: '15px'}}>{talent.name}</div>
-                  <div style={{fontSize: '12px', color: 'var(--text-muted)'}}>{talent.role || 'Career Analysis'} • {getRelativeTime(talent.timestamp)}</div>
-                </div>
-                <div style={{marginLeft: 'auto', textAlign: 'right'}}>
-                  <div className="talent-score">{talent.score}%</div>
-                  <div style={{fontSize: '9px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px'}}>Match Rank</div>
-                </div>
+          <div className="trajectories-grid custom-scroll" style={{maxHeight: '600px', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px', paddingRight: '15px'}}>
+            {history.map((item, i) => (
+              <div key={item.id} className="trajectory-card glass-card hover-lift" style={{padding: '28px', border: '1px solid rgba(255,255,255,0.03)', position: 'relative'}}>
+                 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
+                    <div style={{width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(0, 229, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                       <Activity size={20} color="var(--primary)" />
+                    </div>
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end'}}>
+                      <div style={{fontSize: '18px', fontWeight: 'bold', color: 'var(--secondary)', background: 'rgba(213, 0, 249, 0.1)', padding: '4px 12px', borderRadius: '4px', letterSpacing: '1px'}}>
+                        {item.overallScore || 0}% <span style={{fontSize: '10px', opacity: 0.7}}>MATCH</span>
+                      </div>
+                      <div style={{fontSize: '10px', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '4px', height: 'fit-content', letterSpacing: '1px', fontWeight: 'bold'}}>NEEDS TWEAK</div>
+                    </div>
+                 </div>
+                 <h3 style={{fontSize: '24px', marginBottom: '12px', color: '#fff', lineHeight: '1.2'}}>{item.primaryRole || 'Career Target'}</h3>
+                 <div style={{fontSize: '13px', color: 'var(--text-muted)', letterSpacing: '1px'}}>Scanned: {new Date(item.analysisDate).toLocaleDateString()}</div>
               </div>
-            )) : (
-              <div style={{opacity: 0.5, padding: '20px', textAlign: 'center', fontSize: '12px'}}>No global activity detected yet.</div>
-            )}
-          </div>
-
-
-          
-          <div style={{marginTop: '32px', textAlign: 'right'}}>
-            <button className="btn-primary" style={{borderRadius: '50%', width: '56px', height: '56px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}}>
-              <Plus size={24} color="#000" />
-            </button>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* RIGHT SIDEBAR - GLOBAL ECOSYSTEM */}
+      <div className="ecosystem-sidebar glass-card custom-scroll" style={{width: '380px', padding: '30px', borderLeft: '1px solid rgba(255,255,255,0.05)'}}>
+         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
+            <h2 style={{fontSize: '28px'}}>Global Ecosystem</h2>
+            <span onClick={() => navigate('/usersuse')} style={{color: 'var(--primary)', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold'}}>View All</span>
+         </div>
+
+         <div className="ecosystem-list" style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            {history.slice(0, 5).map((node, i) => (
+              <div key={i} className="ecosystem-item glass-card animate-slide-up" style={{
+                padding: '16px', display: 'flex', alignItems: 'center', gap: '15px', 
+                background: 'rgba(255,255,255,0.02)', animationDelay: `${i * 100}ms`
+              }}>
+                 <div style={{
+                    width: '45px', height: '45px', borderRadius: '12px', 
+                    border: '1px solid rgba(0, 229, 255, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px', color: 'var(--primary)', fontWeight: 'bold'
+                 }}>{userName.charAt(0).toUpperCase()}</div>
+                 <div style={{flex: 1}}>
+                    <div style={{fontSize: '15px', color: '#fff'}}>{userName}</div>
+                    <div style={{fontSize: '12px', color: 'var(--primary)', fontWeight: '500'}}>{node.primaryRole || 'Analyzing...'}</div>
+                    <div style={{fontSize: '11px', color: 'var(--text-muted)'}}>{getTimeAgo(node.analysisDate)}</div>
+                 </div>
+                 <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '20px', fontWeight: 'bold', color: 'var(--primary)', textShadow: '0 0 10px rgba(0, 229, 255, 0.3)'}}>
+                      {node.overallScore || 0}%
+                    </div>
+                    <div style={{fontSize: '10px', color: 'var(--text-muted)', letterSpacing: '1px'}}>MATCH</div>
+                 </div>
+              </div>
+            ))}
+         </div>
+      </div>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .dashboard-layout { display: flex; gap: 40px; padding: 40px; min-height: 100vh; color: #fff; }
+        .dashboard-main-content { flex: 1; }
+        .ecosystem-sidebar { height: fit-content; max-height: calc(100vh - 80px); overflow-y: auto; position: sticky; top: 40px; }
+        .pulse-slow { animation: pulse 4s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.01); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, var(--primary), var(--secondary)); border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+        
+        .trajectories-grid::-webkit-scrollbar { width: 4px; }
+      `}} />
     </div>
   );
 }

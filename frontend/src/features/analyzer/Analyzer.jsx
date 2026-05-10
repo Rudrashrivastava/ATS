@@ -6,22 +6,17 @@ import { UploadCloud, CheckCircle2, FileText, Activity, Briefcase, MapPin, Globe
 export default function Analyzer({ token }) {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [suggestedJobs, setSuggestedJobs] = useState([]);
-  const [suggestedCompanies, setSuggestedCompanies] = useState([]);
   const [jobDesc, setJobDesc] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleAnalyze = async () => {
     if (!file) return;
     setLoading(true);
     setResult(null);
-    setShowSuggestions(false);
     setProgress(0);
     
-    // Simulate extraction progress
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 95) {
@@ -40,61 +35,18 @@ export default function Analyzer({ token }) {
       const endpoint = jobDesc ? '/api/resume/analyze-with-job' : '/api/resume/analyze';
       const res = await axios.post(endpoint, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
         }
       });
       clearInterval(interval);
       setProgress(100);
       setResult(res.data);
-        // After analysis, fetch job suggestions based on resume content
-        const query = (res?.data?.strengths && res.data.strengths.length > 0) ? res.data.strengths[0] : 'developer';
-        try {
-          const jobRes = await axios.get('/api/jobs/suggestions', {
-            params: { query }
-          });
-          const suggestions = [];
-          const data = jobRes.data;
-          if (data && (data.minSalary || data.maxSalary)) {
-            suggestions.push({
-              id: 1,
-              title: query.charAt(0).toUpperCase() + query.slice(1),
-              company: 'Various',
-              location: 'Germany',
-              salary: `${data.minSalary || ''}-${data.maxSalary || ''} EUR`
-            });
-          }
-          setSuggestedJobs(suggestions);
-
-          // Fetch suggested companies using the same query
-          const compRes = await axios.get('/api/jobs/companies', {
-            params: { query }
-          });
-          if (compRes.data && compRes.data.results) {
-            setSuggestedCompanies(compRes.data.results.slice(0, 4));
-          }
-        } catch (apiErr) {
-          console.error('Job/Company API error', apiErr);
-          // FALLBACK: Use dummy data if API fails (e.g., 502 Bad Gateway)
-          const fallbackJobs = [
-            { id: 1, title: query.charAt(0).toUpperCase() + query.slice(1), company: 'Nexus Systems', location: 'Remote / Berlin', salary: '65k-85k EUR' },
-            { id: 2, title: 'Systems Architect', company: 'Cyberdyne', location: 'Munich', salary: '90k-120k EUR' }
-          ];
-          const fallbackCompanies = [
-            { name: 'TechNode Global', city: 'Berlin' },
-            { name: 'Quantum Leap Inc', city: 'Hamburg' }
-          ];
-          setSuggestedJobs(fallbackJobs);
-          setSuggestedCompanies(fallbackCompanies);
-        }
     } catch (err) {
       clearInterval(interval);
       setProgress(0);
       console.error(err);
-      if (err.response && err.response.data && err.response.data.error) {
-        alert('Error: ' + err.response.data.error);
-      } else {
-        alert('Analysis failed. Did you paste your API Key in application.properties?');
-      }
+      alert('Analysis failed. Check backend connectivity or API keys.');
     }
     setLoading(false);
   };
@@ -146,9 +98,6 @@ export default function Analyzer({ token }) {
                   </div>
                   <div className="progress-bar">
                     <div className="progress-fill" style={{width: `${progress}%`}}></div>
-                  </div>
-                  <div style={{fontSize: '12px', color: 'var(--primary)', marginTop: '8px'}}>
-                    {progress < 100 ? 'Extracting Semantic Nodes...' : 'Analysis Complete'}
                   </div>
                 </div>
               </div>
@@ -208,32 +157,29 @@ export default function Analyzer({ token }) {
                 </div>
               </div>
 
-              {!showSuggestions ? (
-                <div style={{marginTop: '32px', textAlign: 'center'}}>
-                  <button 
-                    onClick={() => navigate('/yourresumefit', { state: { query: result.marketSearchQuery || 'developer' } })}
-                    className="btn-primary"
-                    style={{
-                      padding: '16px 32px',
-                      fontSize: '16px',
-                      background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                      boxShadow: '0 0 20px var(--primary-glow)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <Zap size={20} fill="currentColor" />
-                    DECODE MARKET OPPORTUNITIES
-                  </button>
-                  <p className="text-muted" style={{marginTop: '12px', fontSize: '12px'}}>Neural engine ready to map your trajectory against active market nodes.</p>
-                </div>
-              ) : null}
-
-
+              <div style={{marginTop: '32px', textAlign: 'center'}}>
+                <button 
+                  onClick={() => navigate('/yourresumefit', { state: { analysisData: result } })}
+                  className="btn-primary"
+                  style={{
+                    padding: '16px 32px',
+                    fontSize: '16px',
+                    background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                    boxShadow: '0 0 20px var(--primary-glow)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%'
+                  }}
+                >
+                  <Zap size={20} fill="currentColor" />
+                  DECODE MARKET OPPORTUNITIES
+                </button>
+                <p className="text-muted" style={{marginTop: '12px', fontSize: '12px'}}>Neural engine will now cross-reference your profile with active market nodes.</p>
+              </div>
             </div>
           ) : (
-            <div className="empty-state">
+            <div className="empty-state" style={{textAlign: 'center', padding: '60px'}}>
               <Activity size={64} style={{opacity: 0.2, marginBottom: '24px'}} />
               <h3>Awaiting Input</h3>
               <p className="text-muted">Upload a profile to begin neural analysis.</p>
