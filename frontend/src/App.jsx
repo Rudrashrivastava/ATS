@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import Auth from './features/auth/Auth';
 import Analyzer from './features/analyzer/Analyzer';
 import ResumeFit from './features/analyzer/ResumeFit';
@@ -11,8 +11,11 @@ import { LogOut, LayoutDashboard, Search, Zap, Activity } from 'lucide-react';
 
 import { useAuth } from './features/auth/hooks/useAuth';
 
-function App() {
+// Wrapper to handle location-based logic
+function AppContent() {
   const { token, user, loading, logout } = useAuth();
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/auth';
 
   const handleLogout = () => {
     logout();
@@ -20,51 +23,70 @@ function App() {
   };
 
   return (
-    <Router>
-      <div className="app-container" style={{minHeight: '100vh', padding: '24px'}}>
-        
-        {/* 1. PERMANENT NAV: SHOWS INSTANTLY IF TOKEN EXISTS */}
-        {token && (
-          <nav className="navbar no-print animate-fade-in" style={{position: 'sticky', top: '0', zIndex: '2000', boxShadow: '0 0 20px rgba(0, 229, 255, 0.1)', background: '#1a1d27'}}>
-            <Link to="/" className="nav-brand" style={{textDecoration: 'none'}}>
-              <Zap size={24} color="var(--primary)" />
-              <span>ATS INTELLIGENCE</span>
+    <div style={{minHeight: '100vh', background: '#0a0a12', position: 'relative'}}>
+      
+      {/* 1. CONDITIONAL NAV: HIDE ON AUTH PAGE, SHOW AFTER LOGIN */}
+      {token && !isAuthPage && (
+        <nav className="global-navbar no-print" style={{
+          position: 'fixed', top: '0', left: '0', right: '0', 
+          zIndex: 1000000, height: '70px', 
+          background: '#121420', borderBottom: '3px solid #00E5FF',
+          boxShadow: '0 4px 30px rgba(0, 229, 255, 0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 40px'
+        }}>
+          <Link to="/" className="nav-brand" style={{textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <Zap size={24} color="#00E5FF" />
+            <span style={{color: '#00E5FF', fontWeight: 'bold', fontSize: '20px', letterSpacing: '1px'}}>ATS INTELLIGENCE</span>
+          </Link>
+          
+          <div style={{display: 'flex', gap: '40px', alignItems: 'center'}}>
+            <Link to="/" className="nav-link-neural">
+              <LayoutDashboard size={18} />
+              DASHBOARD
             </Link>
             
-            <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-              <Link to="/" style={{color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', letterSpacing: '1px'}}>
-                <LayoutDashboard size={18} color="var(--primary)" />
-                DASHBOARD
-              </Link>
-              <Link to="/analyzer" style={{color: 'var(--text-main)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', letterSpacing: '1px'}}>
-                <Search size={18} color="var(--primary)" />
-                NEW SCAN
-              </Link>
-              <div style={{height: '24px', width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 10px'}}></div>
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <div style={{textAlign: 'right'}}>
-                  <div style={{fontSize: '12px', fontWeight: 'bold', color: '#fff'}}>{user?.name || 'SYNCING...'}</div>
-                  <div style={{fontSize: '9px', color: 'var(--primary)', letterSpacing: '1px'}}>OPERATOR</div>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  style={{
-                    background: 'rgba(255, 23, 68, 0.1)', border: '1px solid rgba(255, 23, 68, 0.2)',
-                    color: '#ff1744', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '8px'
-                  }}
-                >
-                  <LogOut size={16} />
-                </button>
-              </div>
-            </div>
-          </nav>
-        )}
+            <Link to="/analyzer" className="nav-link-neural">
+              <Search size={18} />
+              ATS SCAN
+            </Link>
 
+            <div style={{height: '24px', width: '1px', background: 'rgba(255,255,255,0.1)'}}></div>
+            
+            <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+              <div style={{textAlign: 'right'}}>
+                <div style={{fontSize: '14px', fontWeight: 'bold', color: '#fff', textTransform: 'uppercase'}}>
+                  {user?.name || 'OPERATOR'}
+                </div>
+                <div style={{fontSize: '9px', color: '#00E5FF', letterSpacing: '2px'}}>NEURAL IDENTITY</div>
+              </div>
+              
+              <button 
+                onClick={handleLogout}
+                style={{
+                  background: 'rgba(255, 23, 68, 0.1)', border: '1px solid #ff1744',
+                  color: '#ff1744', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px',
+                  fontWeight: 'bold', letterSpacing: '1px', transition: 'all 0.3s ease'
+                }}
+                className="logout-btn-neural"
+              >
+                <LogOut size={16} />
+                LOGOUT
+              </button>
+            </div>
+          </div>
+        </nav>
+      )}
+
+      {/* 2. MAIN APP CONTAINER (PUSHED DOWN BY NAV HEIGHT ONLY IF NAV IS VISIBLE) */}
+      <div className="app-container" style={{
+        paddingTop: (token && !isAuthPage) ? '100px' : '0', 
+        paddingLeft: '40px', paddingRight: '40px', paddingBottom: '40px'
+      }}>
         <div className="main-content">
-          {/* 2. LOADING GUARD: ONLY APPLIES TO CONTENT, NOT THE NAV */}
           {loading && token ? (
-            <div style={{height: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'}}>
+            <div style={{height: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#00E5FF'}}>
               <Activity size={48} className="pulse-slow" />
               <p style={{marginTop: '24px', letterSpacing: '4px', fontSize: '12px', fontWeight: 'bold'}}>RE-ESTABLISHING NEURAL LINK...</p>
             </div>
@@ -81,12 +103,32 @@ function App() {
           )}
         </div>
       </div>
+
       <style dangerouslySetInnerHTML={{ __html: `
+        .nav-link-neural { 
+          color: #fff; 
+          text-decoration: none; 
+          display: flex; 
+          align-items: center; 
+          gap: 10px; 
+          font-size: 11px; 
+          font-weight: 700;
+          letter-spacing: 2px;
+          transition: all 0.3s ease;
+        }
+        .nav-link-neural:hover { color: #00E5FF; transform: translateY(-1px); }
+        .logout-btn-neural:hover { background: #ff1744 !important; color: #fff !important; box-shadow: 0 0 15px rgba(255, 23, 68, 0.4); }
         .pulse-slow { animation: pulse 3s infinite ease-in-out; }
         @keyframes pulse { 0%, 100% { opacity: 0.4; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

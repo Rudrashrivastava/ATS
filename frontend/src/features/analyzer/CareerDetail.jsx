@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Activity, Briefcase, Globe, 
-  MapPin, Rocket, ShieldCheck, Zap 
+  MapPin, Rocket, ShieldCheck, Zap, Target
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -11,17 +11,17 @@ export default function CareerDetail() {
   const trajectory = state?.trajectory;
   
   const [steps, setSteps] = useState([]);
-  const [opportunities, setOpportunities] = useState([]);
+  const [alignmentRoadmap, setAlignmentRoadmap] = useState([]);
 
   useEffect(() => {
     if (trajectory) {
       try {
-        // PARSE REAL AI RESPONSE FROM NEURAL REPOSITORY
         const parsedSteps = trajectory.trajectoryJson ? JSON.parse(trajectory.trajectoryJson) : [];
         const parsedOpps = trajectory.opportunitiesJson ? JSON.parse(trajectory.opportunitiesJson) : [];
         
         setSteps(parsedSteps);
-        setOpportunities(parsedOpps);
+        // Use opportunities data as the "Alignment Roadmap" for the specific JD
+        setAlignmentRoadmap(parsedOpps);
       } catch (e) {
         console.error("Neural Decoding Failed", e);
       }
@@ -33,51 +33,58 @@ export default function CareerDetail() {
   return (
     <div className="career-detail-container animate-fade-in custom-scroll">
       
-      {/* HEADER SECTION */}
       <div style={{marginBottom: '48px', display: 'flex', alignItems: 'center', gap: '24px'}}>
         <button onClick={() => navigate('/')} className="glass-card hover-lift" style={{padding: '12px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', background: 'rgba(255,255,255,0.05)'}}>
           <ArrowLeft size={20} color="var(--primary)" />
         </button>
         <div>
           <h1 style={{fontSize: '32px', color: '#fff', fontWeight: 'bold'}}>{trajectory.primaryRole || 'Career Node'}</h1>
-          <p style={{color: 'var(--text-muted)', fontSize: '14px', letterSpacing: '1px'}}>IDENTIFIED BY AI STRATEGIST</p>
+          <p style={{color: 'var(--text-muted)', fontSize: '14px', letterSpacing: '2px'}}>AI STRATEGIST DOSSIER</p>
         </div>
       </div>
 
-      <div className="detail-grid" style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px'}}>
+      <div className="detail-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px'}}>
         
-        {/* AGENT-VERIFIED OPPORTUNITIES (REAL AI DATA) */}
-        <div className="glass-card" style={{padding: '40px', background: 'rgba(255,255,255,0.01)'}}>
+        {/* REPLACED: JOB ALIGNMENT ROADMAP (INSTEAD OF OPPORTUNITIES) */}
+        <div className="glass-card" style={{padding: '40px', background: 'rgba(255,255,255,0.01)', borderLeft: '4px solid var(--primary)'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px'}}>
-            <Briefcase size={24} color="var(--primary)" />
-            <h2 style={{fontSize: '24px', fontWeight: 'bold'}}>Agent-Verified Opportunities</h2>
+            <Target size={24} color="var(--primary)" />
+            <h2 style={{fontSize: '24px', fontWeight: 'bold'}}>Job Alignment Roadmap</h2>
           </div>
           
           <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
-            {opportunities.length > 0 ? opportunities.map((opp, i) => (
-              <div key={i} className="opp-card glass-card hover-lift" style={{padding: '30px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(0, 229, 255, 0.1)', borderLeft: '4px solid var(--primary)'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '16px'}}>
-                  <h3 style={{fontSize: '20px', color: '#fff'}}>{opp.title}</h3>
-                  <span className="badge-neural">COMPETITIVE</span>
+            {alignmentRoadmap.length > 0 ? alignmentRoadmap.map((item, i) => (
+              <div key={i} className="roadmap-node glass-card" style={{padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px'}}>
+                   <div style={{width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 10px var(--primary)'}}></div>
+                   <h3 style={{fontSize: '16px', color: '#fff', fontWeight: 'bold'}}>{item.title}</h3>
                 </div>
-                <div style={{display: 'flex', gap: '20px', marginBottom: '16px', fontSize: '13px', color: 'var(--text-muted)'}}>
-                  <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><Globe size={14} /> {opp.company}</span>
-                  <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><MapPin size={14} /> {opp.location}</span>
-                </div>
-                <p style={{fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6'}}>{opp.desc}</p>
-                <button className="btn-primary" style={{marginTop: '24px', width: '100%', fontSize: '12px'}}>VIEW FULL TRAJECTORY</button>
+                <p style={{fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6'}}>{item.desc}</p>
               </div>
             )) : (
-              <p style={{color: 'var(--text-muted)'}}>No specific opportunities identified for this node.</p>
+              <div style={{padding: '40px', textAlign: 'center', opacity: 0.5}}>
+                <ShieldCheck size={48} style={{marginBottom: '16px'}} color="var(--primary)" />
+                <p>Decoding alignment strategy...</p>
+              </div>
             )}
+          </div>
+
+          <div style={{marginTop: '40px', padding: '32px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '16px', border: '1px solid var(--primary-glow)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
+                 <Zap size={20} color="var(--primary)" />
+                 <span style={{fontSize: '12px', fontWeight: 'bold', color: 'var(--primary)', letterSpacing: '2px'}}>STRATEGIC OVERVIEW</span>
+              </div>
+              <p style={{fontSize: '14px', color: '#fff', lineHeight: '1.6', fontWeight: '400'}}>
+                {trajectory.recommendation?.replace(/\*\*/g, '')}
+              </p>
           </div>
         </div>
 
-        {/* GLOBAL CAREER TRAJECTORY (REAL AI STEPS) */}
+        {/* GLOBAL CAREER TRAJECTORY */}
         <div className="glass-card" style={{padding: '40px', background: 'rgba(255,255,255,0.01)'}}>
            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px'}}>
               <Rocket size={24} color="var(--secondary)" />
-              <h2 style={{fontSize: '24px', fontWeight: 'bold'}}>Global Career Trajectory</h2>
+              <h2 style={{fontSize: '24px', fontWeight: 'bold'}}>Evolution Strategy</h2>
            </div>
 
            <div className="trajectory-stepper">
@@ -95,21 +102,12 @@ export default function CareerDetail() {
                 <p style={{color: 'var(--text-muted)'}}>AI Strategist is still mapping your roadmap...</p>
               )}
            </div>
-
-           <div style={{marginTop: '40px', padding: '24px', background: 'rgba(0, 229, 255, 0.05)', borderRadius: '16px', border: '1px solid var(--primary-glow)'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px'}}>
-                 <ShieldCheck size={20} color="var(--primary)" />
-                 <span style={{fontSize: '12px', fontWeight: 'bold', color: 'var(--primary)', letterSpacing: '1px'}}>NEURAL RECOMMENDATION</span>
-              </div>
-              <p style={{fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.6'}}>{trajectory.recommendation}</p>
-           </div>
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .career-detail-container { padding: 40px; min-height: 100vh; background: #0a0a12; color: #fff; }
-        .opp-card:hover { border-color: var(--primary); box-shadow: 0 0 30px rgba(0, 229, 255, 0.1); }
-        .badge-neural { background: rgba(0, 229, 255, 0.1); color: var(--primary); padding: 5px 12px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .career-detail-container { padding: 40px; min-height: 100vh; background: #0a0a12; color: #fff; margin-top: 70px; }
+        .roadmap-node:hover { border-color: var(--primary); transform: translateX(10px); }
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
       `}} />

@@ -31,9 +31,12 @@ public class ATSScoreService {
 
     public ATSScore calculateScore(String resumeText, String jobDescription) {
         try {
-            String prompt = "Analyze this resume against this job description. Return ONLY a valid JSON object with these fields: " +
-                    "score (0-100), recommendation (short summary), strengths (list), weaknesses (list), " +
-                    "categoryScores (map of SkillName:Score), marketSearchQuery (a 3-word role title), " +
+            // COMMAND: No Markdown, Strict Structured JSON
+            String prompt = "Analyze this resume against this job description. Return ONLY a valid JSON object. " +
+                    "CRITICAL: DO NOT use markdown like **bold** in any text. " +
+                    "Fields: " +
+                    "score (0-100), recommendation (professional text), strengths (list), weaknesses (list), " +
+                    "categoryScores (map of SkillName:Score), marketSearchQuery (role title), " +
                     "trajectory (list of 6 actionable career steps), " +
                     "opportunities (list of 3 objects with: title, company, location, desc). " +
                     "Resume: " + resumeText + " Job: " + jobDescription;
@@ -61,8 +64,8 @@ public class ATSScoreService {
             JsonNode root = objectMapper.readTree(responseBody);
             String content = root.path("choices").get(0).path("message").path("content").asText();
             
-            // Cleanup markdown
-            content = content.replaceAll("```json", "").replaceAll("```", "").trim();
+            // CLEANUP: Force remove any accidental markdown markers
+            content = content.replaceAll("```json", "").replaceAll("```", "").replaceAll("\\*\\*", "").trim();
             JsonNode data = objectMapper.readTree(content);
 
             List<String> trajectory = new ArrayList<>();

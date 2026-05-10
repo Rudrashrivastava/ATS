@@ -13,7 +13,7 @@ import java.util.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GeminiService { // Name kept for compatibility, logic is GROQ
+public class GroqService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -29,21 +29,19 @@ public class GeminiService { // Name kept for compatibility, logic is GROQ
 
     public String getChatResponse(String userQuery, Map<String, Object> context) {
         try {
-            // SYSTEM PROMPT: Project Manual + Resume Context
-            String systemPrompt = "You are the ATS Intelligence Assistant. " +
+            String systemPrompt = "You are the ATS Intelligence Assistant (Powered by Groq). " +
                     "PROJECT MANUAL: " +
                     "1. ANALYZER: Upload a PDF resume to get an AI score and roadmap. " +
                     "2. DASHBOARD: View your history, global stats, and career trajectories. " +
-                    "3. DETAILS: See a 6-step roadmap and job alignment strategy for any scan. " +
-                    "MISTRAL MODEL: Performs the heavy ATS scoring and analysis. " +
+                    "3. DETAILS: See a 6-step roadmap and job alignment strategy. " +
+                    "MISTRAL MODEL: Performs the ATS scoring. " +
                     "GROQ MODEL: Powers this real-time assistant chat. " +
-                    "ALWAYS provide professional, concise advice without markdown like **bold**. ";
+                    "ALWAYS provide professional, concise advice without markdown tags like **. ";
 
             if (context != null) {
-                systemPrompt += "RESUME CONTEXT: The user is targeting a '" + context.get("role") + "' role. " +
-                        "Their ATS score is " + context.get("score") + "%. " +
-                        "AI Recommendation: " + context.get("recommendation") + ". " +
-                        "Roadmap: " + context.get("roadmap") + ". ";
+                systemPrompt += "RESUME CONTEXT: Target Role: " + context.get("role") + ". " +
+                        "ATS Score: " + context.get("score") + "%. " +
+                        "AI Advice: " + context.get("recommendation") + ". ";
             }
 
             HttpHeaders headers = new HttpHeaders();
@@ -64,16 +62,10 @@ public class GeminiService { // Name kept for compatibility, logic is GROQ
             List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
             Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
             
-            // CLEANUP: Remove any accidental markdown
             return ((String) message.get("content")).replaceAll("\\*\\*", "");
         } catch (Exception e) {
-            log.error("Groq Assistant Failure", e);
-            return "Neural Link Error: " + e.getMessage();
+            log.error("Groq Failure", e);
+            return "Neural Link Error (Groq): " + e.getMessage();
         }
-    }
-
-    // Overload for backward compatibility
-    public String getChatResponse(String userQuery) {
-        return getChatResponse(userQuery, null);
     }
 }

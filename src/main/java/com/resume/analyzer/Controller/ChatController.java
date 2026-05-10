@@ -1,6 +1,6 @@
 package com.resume.analyzer.Controller;
 
-import com.resume.analyzer.Services.GeminiService;
+import com.resume.analyzer.Services.GroqService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,12 +13,15 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final GeminiService geminiService;
+    private final GroqService groqService;
 
     @PostMapping("/query")
-    public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, String> request) {
-        String userQuery = request.get("query");
-        String response = geminiService.getChatResponse(userQuery);
+    public ResponseEntity<Map<String, String>> chat(@RequestBody Map<String, Object> request) {
+        String userQuery = (String) request.get("query");
+        Map<String, Object> context = (Map<String, Object>) request.get("context");
+        
+        // ACCURATE IDENTITY: Using GroqService
+        String response = groqService.getChatResponse(userQuery, context);
         
         Map<String, String> result = new HashMap<>();
         result.put("response", response);

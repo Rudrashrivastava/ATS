@@ -2,24 +2,40 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 export const useAuth = () => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  // FORCE RE-READ FROM STORAGE
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // 1. INITIAL IDENTITY SYNC (Proper Auth Implementation)
+  // 1. SYNC TOKEN WITH STORAGE CHANGES
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken !== token) {
+        setToken(currentToken);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [token]);
+
+  // 2. IDENTITY VERIFICATION (Deep Handshake)
   useEffect(() => {
     const verifyIdentity = async () => {
-      if (!token) {
+      const activeToken = localStorage.getItem('token');
+      if (!activeToken) {
+        setToken(null);
         setLoading(false);
         return;
       }
 
       try {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axios.defaults.headers.common['Authorization'] = `Bearer ${activeToken}`;
         const res = await axios.get('/api/user/me');
         setUser(res.data);
+        setToken(activeToken); // Ensure state matches storage
       } catch (err) {
         console.error("Identity Handshake Failed", err);
         logout();
@@ -28,7 +44,7 @@ export const useAuth = () => {
       }
     };
     verifyIdentity();
-  }, [token]);
+  }, []); // Run ONCE on mount to sync reality
 
   const handleLogin = useCallback(async (credentials) => {
     setLoading(true);
@@ -38,6 +54,7 @@ export const useAuth = () => {
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         setToken(res.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         return true;
       }
     } catch (err) {
