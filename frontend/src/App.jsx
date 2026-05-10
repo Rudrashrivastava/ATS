@@ -3,35 +3,16 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LogOut, Activity } from 'lucide-react';
 
-import Auth from './features/auth/Auth';
+import AuthPage from './features/auth/pages/AuthPage';
 import Dashboard from './features/dashboard/Dashboard';
 import Analyzer from './features/analyzer/Analyzer';
 import ResumeFit from './features/analyzer/ResumeFit';
 import GlobalEcosystem from './features/dashboard/GlobalEcosystem';
 
+import { useAuth } from './features/auth/hooks/useAuth';
+
 function App() {
-  const [token, setToken] = useState(() => {
-    const saved = localStorage.getItem('token');
-    if (saved) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${saved}`;
-    }
-    return saved;
-  });
-
-
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-    }
-  }, [token]);
-
-  const logout = () => {
-    setToken(null);
-  };
+  const { token, loading, error, success, handleLogin, handleRegister, logout, setError, setSuccess } = useAuth();
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
@@ -47,8 +28,7 @@ function App() {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
-
+  }, [logout]);
 
   return (
     <Router>
@@ -70,7 +50,17 @@ function App() {
         )}
         <div className="main-content">
           <Routes>
-            <Route path="/auth" element={!token ? <Auth setToken={setToken} /> : <Navigate to="/" />} />
+            <Route path="/auth" element={!token ? (
+              <AuthPage 
+                handleLogin={handleLogin} 
+                handleRegister={handleRegister} 
+                loading={loading} 
+                error={error} 
+                success={success} 
+                setError={setError}
+                setSuccess={setSuccess}
+              />
+            ) : <Navigate to="/" />} />
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/auth" />} />
             <Route path="/analyzer" element={token ? <Analyzer token={token} /> : <Navigate to="/auth" />} />
             <Route path="/yourresumefit" element={token ? <ResumeFit token={token} /> : <Navigate to="/auth" />} />
@@ -82,5 +72,6 @@ function App() {
     </Router>
   );
 }
+
 
 export default App;
