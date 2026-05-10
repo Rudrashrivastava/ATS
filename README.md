@@ -1,73 +1,74 @@
-# ATS Analyzer
+# 🌌 ATS Neural Analyzer (Cybernetic Edition)
 
-ATS Analyzer is a resume analysis tool that helps users evaluate their resumes against job descriptions (optional) to generate an ATS score, strengths, weaknesses, and actionable recommendations.
-
-## Features
-- **Resume Analysis:** Upload a resume to get detailed insights.
-- **Job Description Matching:** Optionally provide a job description to assess resume alignment.
-- **ATS Score:** Get a score indicating how well your resume fits an ATS.
-- **Recommendations:** Receive suggestions for improving your resume.
-
-## Technologies Used
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap
-- **Backend:** Spring Boot
-- **AI Integration:** Spring AI 
-
-## Requirements
-To run this application, ensure you have the following:
-- **Java 21** (included in the Docker image via OpenJDK 21-slim)
-- **Docker Desktop** (if running via Docker)
-- **Spring Boot** (managed in the project itself)
-- **OpenAI-compatible API credentials** (for AI features)
-- **8080 Port Availability** (default app port)
-
-## Getting Started
-
-You can run the application in two ways:
-
-
-4. Configure your AI settings:
-    - Click on the **Settings** icon.
-    - Enter your **Base URL**, **API Key**, **Model Name**, and **Sampling Rate**.
-    - Click **Save**.
-
-5. Upload your resume (and optionally a job description) to start the analysis!
-
-### 2. Run with Docker
-
-
-
-1. #### Pull and Run Prebuilt Docker Image
-
-   ```bash
-   docker pull dineshgvns/ats-analyzer-app
-   ```
-   
-2. #### Alternatively, you can Build and Run the Docker Container 
-   1. Build the Docker image:
-      ```bash
-      docker build -t ats-analyzer .
-      ```
-
-   2. Run the Docker container:
-      ```bash
-      docker run -p 8080:8080 ats-analyzer
-      ```
-
-3. Access the application at:
-    - **Frontend:** `http://localhost:8080`
-
-
-## Note
-- Only **OpenAI-compatible URLs** are supported at this time.
-
-## Contributing
-Feel free to fork the repo, submit issues, or create pull requests.
-
-## License
-This project is licensed under the MIT License.
+An elite, full-stack career intelligence platform that uses advanced AI to bridge the gap between resumes and the global job market. Built with a high-performance **Spring Boot 3.x** backend and a premium **React.js** futuristic glassmorphic frontend.
 
 ---
 
-Ready to boost your resume? Let ATS Analyzer guide you to success! 🚀
+## 🚀 Core Functionalities
 
+### 1. Neural ATS Scoring Engine
+- **Intelligent Analysis**: Deep-scans resumes using the Mistral AI model via Spring AI.
+- **Dynamic Scoring**: Moves beyond static parsing. Every score (1-100) is calculated based on keywords, structure, quantifiable achievements, and JD alignment.
+- **JD Matching**: Optional Job Description field for targeted compatibility analysis.
+- **Multi-Page Support**: Robust PDF extraction that reads every page of your career history.
+
+### 2. Market Synchronization Node
+- **Live Job Mapping**: Automatically translates your resume strengths into concise search queries.
+- **Glassdoor Integration**: Fetches real-time job listings from the **Glassdoor API** (proxied via OpenWebNinja).
+- **Trajectory Visualization**: View active openings, company logos, and direct application links in a dedicated futuristic "Sync" view.
+
+### 3. Persistent Talent Dashboard
+- **Neural History**: Every scan is saved to a persistent MySQL database. Never lose a trajectory.
+- **Real-Time Analytics**: Visualizes your career progression and historical match accuracy.
+- **AI Recommendations**: Instant, actionable advice displayed directly on your talent feed.
+
+---
+
+## 🤖 The AI "Agents" Inside
+
+We have engineered two distinct AI personas into the logic of this application:
+
+### A. The Elite Technical Recruiter (Analysis Agent)
+*   **Persona**: A brutal, high-standard technical recruiter who hates fluff.
+*   **Mission**: To provide objective, data-driven scores and identify "Weaknesses" that most scanners miss.
+*   **Location**: `ATSScoreService.java` (System Prompt).
+
+### B. The Market Synchronization Specialist (Extraction Agent)
+*   **Persona**: A strategist who knows how to map human experience to market demand.
+*   **Mission**: To extract the single most powerful "Market Query" from your resume to find the highest-paying, most relevant jobs.
+*   **Location**: Integrated into the `ATSScore` output schema.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Backend Core** | Spring Boot 3.2.5, Java 17 |
+| **AI Integration** | Spring AI (Mistral / OpenAI format) |
+| **Persistence** | Spring Data JPA + MySQL |
+| **Security** | JWT (JSON Web Tokens) & Spring Security |
+| **Frontend** | React (Vite), Axios, Lucide Icons |
+| **Styling** | Custom Cybernetic CSS (Glassmorphism) |
+| **External APIs** | OpenWebNinja (Glassdoor), RapidAPI (Salary Data) |
+
+---
+
+## ⚙️ Setup & Configuration
+
+1.  **Backend**: Configure your `application.properties` with:
+    - `rapidapi.key`
+    - `openwebninja.api-key`
+    - `spring.ai.openai.api-key`
+2.  **Database**: Ensure a MySQL instance is running and update the connection string.
+3.  **Frontend**: Run `npm install` followed by `npm run dev`.
+
+---
+
+## 📈 Recent Updates (v2.0)
+- ✅ **Global Scrollbar Hiding**: Pure immersive "App" experience.
+- ✅ **Secure Proxying**: All API keys are hidden behind a backend proxy (`JobProxyController`).
+- ✅ **Reference Hardening**: Fixed PDF extraction and URL encoding for 100% crash-proof scans.
+
+---
+*Created by Rudrashrivastava • Powered by Antigravity AI*
