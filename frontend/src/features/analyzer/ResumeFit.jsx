@@ -37,20 +37,42 @@ export default function ResumeFit() {
       }
 
       // 1. EXTRACT REAL AI AGENT RESPONSE FROM ANALYSIS DATA
-      // These fields are now populated by our reinforced ATSScoreService
-      const realTrajectory = analysisData.trajectory || [];
-      const realOpps = analysisData.opportunities || [];
+      // Decoding JSON strings stored in the backend
+      try {
+        let realTrajectory = [];
+        let realOpps = [];
 
-      if (realTrajectory.length > 0) {
-        setRoadmap(realTrajectory);
-        setJobs(realOpps);
-        setLoading(false);
-      } else {
-        // Fallback: If for some reason the data is missing, we ping the history
-        try {
-          const res = await axios.get('/api/resume/history', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        if (analysisData.trajectoryJson) {
+          realTrajectory = typeof analysisData.trajectoryJson === 'string' 
+            ? JSON.parse(analysisData.trajectoryJson) 
+            : analysisData.trajectoryJson;
+        } else if (analysisData.trajectory) {
+          realTrajectory = analysisData.trajectory;
+        }
+
+        if (analysisData.opportunitiesJson) {
+          realOpps = typeof analysisData.opportunitiesJson === 'string' 
+            ? JSON.parse(analysisData.opportunitiesJson) 
+            : analysisData.opportunitiesJson;
+        } else if (analysisData.opportunities) {
+          realOpps = analysisData.opportunities;
+        }
+
+        if (realTrajectory.length > 0 || realOpps.length > 0) {
+          setRoadmap(realTrajectory);
+          setJobs(realOpps);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Neural Decoding Failed", e);
+      }
+
+      // 2. FALLBACK: If data is missing from state, ping history
+      try {
+        const res = await axios.get('/api/resume/all-history', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
           const latest = res.data[0];
           if (latest && latest.trajectoryJson) {
             setRoadmap(JSON.parse(latest.trajectoryJson));
@@ -61,7 +83,6 @@ export default function ResumeFit() {
         } finally {
           setLoading(false);
         }
-      }
     };
 
     syncAiData();

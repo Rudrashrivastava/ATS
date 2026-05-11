@@ -25,36 +25,34 @@ public class ATSScoreService {
 
     private static final String MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
 
-    public ATSScore calculateScore(String resumeText) {
-        return calculateScore(resumeText, "General technology roles");
-    }
-
     public ATSScore calculateScore(String resumeText, String jobDescription) {
         try {
-            // COMMAND: No Markdown, Strict Structured JSON
-            String prompt = "Analyze this resume against this job description. Return ONLY a valid JSON object. " +
-                    "CRITICAL: DO NOT use markdown like **bold** in any text. " +
-                    "Fields: " +
-                    "score (0-100), recommendation (professional text), strengths (list), weaknesses (list), " +
-                    "categoryScores (map of SkillName:Score), marketSearchQuery (role title), " +
-                    "trajectory (list of 6 actionable career steps), " +
-                    "opportunities (list of 3 objects with: title, company, location, desc). " +
-                    "Resume: " + resumeText + " Job: " + jobDescription;
+            String prompt = "Act as an advanced ATS Intelligence Agent. Analyze this resume against the job description.\n" +
+                    "RESUME: " + resumeText + "\n" +
+                    "JOB: " + jobDescription + "\n\n" +
+                    "Return ONLY a raw JSON object with these EXACT keys:\n" +
+                    "score (0-100 integer), recommendation (2-3 sentences), strengths (array of 4 strings), " +
+                    "weaknesses (array of 4 strings), categoryScores (object with: Skills, Formatting, Keywords, Experience as integers), " +
+                    "marketSearchQuery (string), trajectory (array of 6 strings), " +
+                    "opportunities (array of objects: {title, desc}), resources (array of objects: {name, url}).\n" +
+                    "CRITICAL: NO MARKDOWN. NO CONVERSATION. ONLY JSON.";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + apiKey);
+            headers.set("Authorization", "Bearer " + apiKey.trim());
 
             Map<String, Object> body = new HashMap<>();
-            body.put("model", "mistral-tiny");
+            body.put("model", "mistral-tiny"); // You can also try 'mistral-small' for better logic
             body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+            body.put("temperature", 0.1); // Lower temperature for more consistent JSON
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
             ResponseEntity<String> response = restTemplate.postForEntity(MISTRAL_URL, entity, String.class);
-
+            
+            log.info("Neural Agent Response Received");
             return parseMistralResponse(response.getBody());
         } catch (Exception e) {
-            log.error("AI Agent Failed", e);
+            log.error("Neural Agent Bridge Failed: " + e.getMessage());
             return fallbackScore();
         }
     }
@@ -63,8 +61,6 @@ public class ATSScoreService {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
             String content = root.path("choices").get(0).path("message").path("content").asText();
-            
-            // CLEANUP: Force remove any accidental markdown markers
             content = content.replaceAll("```json", "").replaceAll("```", "").replaceAll("\\*\\*", "").trim();
             JsonNode data = objectMapper.readTree(content);
 
@@ -75,10 +71,16 @@ public class ATSScoreService {
             data.path("opportunities").forEach(n -> {
                 Map<String, String> m = new HashMap<>();
                 m.put("title", n.path("title").asText());
-                m.put("company", n.path("company").asText());
-                m.put("location", n.path("location").asText());
                 m.put("desc", n.path("desc").asText());
                 opps.add(m);
+            });
+
+            List<Map<String, String>> resources = new ArrayList<>();
+            data.path("resources").forEach(n -> {
+                Map<String, String> m = new HashMap<>();
+                m.put("name", n.path("name").asText());
+                m.put("url", n.path("url").asText());
+                resources.add(m);
             });
 
             return ATSScore.builder()
@@ -90,6 +92,7 @@ public class ATSScoreService {
                     .marketSearchQuery(data.path("marketSearchQuery").asText())
                     .trajectory(trajectory)
                     .opportunities(opps)
+                    .resources(resources)
                     .build();
         } catch (Exception e) {
             log.error("Parsing Failed", e);
@@ -100,9 +103,9 @@ public class ATSScoreService {
     private ATSScore fallbackScore() {
         return ATSScore.builder()
                 .score(45)
-                .recommendation("Agent connection limited. Please retry for full analysis.")
-                .marketSearchQuery("System Analysis")
-                .trajectory(List.of("Step 1: Check Connection", "Step 2: Retry Upload", "Step 3: Verify API Key"))
+                .recommendation("Agent connection limited.")
+                .trajectory(List.of("Step 1: Verify Connection", "Step 2: Retry Scan"))
+                .resources(List.of(Map.of("name", "Google Analytics Course", "url", "https://skillshop.exceedlms.com/")))
                 .build();
     }
 }

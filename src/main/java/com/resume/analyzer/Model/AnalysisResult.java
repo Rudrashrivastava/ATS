@@ -1,46 +1,46 @@
 package com.resume.analyzer.Model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "analysis_results")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "analysis_results")
 public class AnalysisResult {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User user;
 
-    private int overallScore;
-    
-    @Column(columnDefinition = "TEXT")
-    private String recommendation;
-    
     private String primaryRole;
-    
-    // AI GENERATED CAREER DNA (STORED AS JSON)
-    @Column(columnDefinition = "TEXT")
-    private String trajectoryJson;
-    
-    @Column(columnDefinition = "TEXT")
-    private String opportunitiesJson;
-    
+    private Integer overallScore;
     private LocalDateTime analysisDate;
 
-    @PrePersist
-    protected void onCreate() {
-        analysisDate = LocalDateTime.now();
-    }
+    @Column(columnDefinition = "LONGTEXT")
+    private String recommendation;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String trajectoryJson;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String opportunitiesJson;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String resourcesJson; // NEW: AI-generated learning resources
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String categoryScoresJson;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String strengths;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String weaknesses;
 }

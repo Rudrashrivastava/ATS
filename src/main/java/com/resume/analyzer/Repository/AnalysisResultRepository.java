@@ -16,7 +16,16 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
 
     List<AnalysisResult> findTop8ByOrderByIdDesc();
     
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user"})
+    List<AnalysisResult> findTop6ByOrderByAnalysisDateDesc();
+
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM AnalysisResult a LEFT JOIN FETCH a.user ORDER BY a.analysisDate DESC")
+    List<AnalysisResult> findGlobalEcosystem();
+
     List<AnalysisResult> findAllByOrderByAnalysisDateDesc();
+
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM AnalysisResult a LEFT JOIN FETCH a.user ORDER BY a.overallScore DESC")
+    List<AnalysisResult> findLeaderboard();
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT a.primaryRole) FROM AnalysisResult a")
     long countUniqueRoles();

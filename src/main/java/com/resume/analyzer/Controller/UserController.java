@@ -20,20 +20,20 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<User> user = userRepository.findByUsername(username);
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Optional<User> user = userRepository.findByEmail(email);
         
         if (user.isPresent()) {
             User u = user.get();
-            // Return only safe fields
+            // Return safe fields for frontend identity sync
             return ResponseEntity.ok(java.util.Map.of(
                 "id", u.getId(),
-                "username", u.getUsername(),
-                "name", u.getName(),
+                "email", u.getEmail(),
+                "name", u.getName() != null ? u.getName() : "OPERATOR",
                 "role", u.getRole()
             ));
         }
         
-        return ResponseEntity.status(401).body("User not found in context");
+        return ResponseEntity.status(401).body("Identity verification failed in neural context");
     }
 }

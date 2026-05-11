@@ -13,9 +13,12 @@ import { useAuth } from './features/auth/hooks/useAuth';
 
 // Wrapper to handle location-based logic
 function AppContent() {
-  const { token, user, loading, logout } = useAuth();
+  const { token: authToken, user, loading, logout } = useAuth();
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
+  
+  // Use either state token or localStorage token for navbar visibility
+  const hasToken = authToken || localStorage.getItem('token');
 
   const handleLogout = () => {
     logout();
@@ -26,7 +29,7 @@ function AppContent() {
     <div style={{minHeight: '100vh', background: '#0a0a12', position: 'relative'}}>
       
       {/* 1. CONDITIONAL NAV: HIDE ON AUTH PAGE, SHOW AFTER LOGIN */}
-      {token && !isAuthPage && (
+      {hasToken && !isAuthPage && (
         <nav className="global-navbar no-print" style={{
           position: 'fixed', top: '0', left: '0', right: '0', 
           zIndex: 1000000, height: '70px', 
@@ -81,11 +84,11 @@ function AppContent() {
 
       {/* 2. MAIN APP CONTAINER (PUSHED DOWN BY NAV HEIGHT ONLY IF NAV IS VISIBLE) */}
       <div className="app-container" style={{
-        paddingTop: (token && !isAuthPage) ? '100px' : '0', 
+        paddingTop: (hasToken && !isAuthPage) ? '100px' : '0', 
         paddingLeft: '40px', paddingRight: '40px', paddingBottom: '40px'
       }}>
         <div className="main-content">
-          {loading && token ? (
+          {loading && authToken ? (
             <div style={{height: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#00E5FF'}}>
               <Activity size={48} className="pulse-slow" />
               <p style={{marginTop: '24px', letterSpacing: '4px', fontSize: '12px', fontWeight: 'bold'}}>RE-ESTABLISHING NEURAL LINK...</p>
@@ -94,10 +97,10 @@ function AppContent() {
             <Routes>
               <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/analyzer" element={<ProtectedRoute><Analyzer token={token} /></ProtectedRoute>} />
-              <Route path="/yourresumefit" element={<ProtectedRoute><ResumeFit token={token} /></ProtectedRoute>} />
-              <Route path="/details" element={<ProtectedRoute><CareerDetail token={token} /></ProtectedRoute>} />
-              <Route path="/usersuse" element={<ProtectedRoute><GlobalEcosystem token={token} /></ProtectedRoute>} />
+              <Route path="/analyzer" element={<ProtectedRoute><Analyzer token={authToken} /></ProtectedRoute>} />
+              <Route path="/yourresumefit" element={<ProtectedRoute><ResumeFit token={authToken} /></ProtectedRoute>} />
+              <Route path="/details" element={<ProtectedRoute><CareerDetail token={authToken} /></ProtectedRoute>} />
+              <Route path="/usersuse" element={<ProtectedRoute><GlobalEcosystem token={authToken} /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

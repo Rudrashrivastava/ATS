@@ -6,34 +6,46 @@ import { useNavigate } from 'react-router-dom';
 export default function GlobalEcosystem() {
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
+  const [personalHistory, setPersonalHistory] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [scoreFilter, setScoreFilter] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('All');
-
-  const categories = ['All', 'Java', 'Python', 'React', 'Full-Stack', 'Security', 'Data'];
+  const [activeTab, setActiveTab] = useState('activity'); // 'activity', 'global', or 'personal'
 
   useEffect(() => {
-    const fetchGlobalHistory = async () => {
+    const fetchData = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await axios.get('/api/resume/all-history', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setHistory(response.data);
-        setFilteredHistory(response.data);
+        const [globalRes, personalRes, recentRes] = await Promise.all([
+          axios.get('/api/resume/leaderboard', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('/api/resume/all-history', { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get('/api/resume/global-ecosystem-full', { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+        setHistory(globalRes.data || []);
+        setPersonalHistory(personalRes.data || []);
+        setRecentActivity(recentRes.data || []);
+        setFilteredHistory(recentRes.data || []); // Default to activity matching full feed
       } catch (err) {
-        console.error('Failed to fetch global history', err);
+        console.error('Failed to fetch ecosystem data', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchGlobalHistory();
+    fetchData();
   }, []);
 
+  const categories = ['All', 'Java', 'Python', 'React', 'Full-Stack', 'Security', 'Data'];
+
   useEffect(() => {
-    let result = history;
+    let source = [];
+    if (activeTab === 'activity') source = recentActivity;
+    else if (activeTab === 'global') source = history;
+    else source = personalHistory;
+    
+    let result = [...source];
 
     // Filter by Score
     if (scoreFilter > 0) {
@@ -57,15 +69,19 @@ export default function GlobalEcosystem() {
     }
 
     setFilteredHistory(result);
-  }, [search, scoreFilter, categoryFilter, history]);
+  }, [search, scoreFilter, categoryFilter, history, personalHistory, activeTab]);
 
   const getRelativeTime = (date) => {
     if (!date) return 'Just now';
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    return new Date(date).toLocaleDateString();
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    const days = Math.floor(seconds / 86400);
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
   };
 
   return (
@@ -91,6 +107,39 @@ export default function GlobalEcosystem() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
+
+      <div style={{display: 'flex', gap: '20px', marginBottom: '24px'}}>
+        <button 
+          onClick={() => setActiveTab('activity')}
+          style={{
+            flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+            background: activeTab === 'activity' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+            color: activeTab === 'activity' ? '#000' : '#fff', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s'
+          }}
+        >
+          GLOBAL ACTIVITY
+        </button>
+        <button 
+          onClick={() => setActiveTab('global')}
+          style={{
+            flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+            background: activeTab === 'global' ? 'var(--secondary)' : 'rgba(255,255,255,0.05)',
+            color: activeTab === 'global' ? '#000' : '#fff', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s'
+          }}
+        >
+          TOP PERFORMANCE
+        </button>
+        <button 
+          onClick={() => setActiveTab('personal')}
+          style={{
+            flex: 1, padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)',
+            background: activeTab === 'personal' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+            color: activeTab === 'personal' ? '#000' : '#fff', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s'
+          }}
+        >
+          MY TRAJECTORIES
+        </button>
       </div>
 
       <div style={{display: 'flex', gap: '16px', marginBottom: '24px'}}>
@@ -154,7 +203,7 @@ export default function GlobalEcosystem() {
           </div>
 
           <div style={{maxHeight: '65vh', overflowY: 'auto'}}>
-            {filteredHistory.map((item, idx) => (
+            {filteredHistory.length > 0 ? filteredHistory.map((item, idx) => (
               <div key={idx} style={{
                 display: 'grid', gridTemplateColumns: '80px 2fr 2fr 1fr 1fr', 
                 padding: '20px 32px', borderBottom: '1px solid rgba(255,255,255,0.03)',
@@ -176,7 +225,12 @@ export default function GlobalEcosystem() {
                   {getRelativeTime(item.analysisDate)}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div style={{padding: '100px', textAlign: 'center', opacity: 0.5}}>
+                <Globe size={48} style={{marginBottom: '20px'}} color="var(--primary)" />
+                <p>No neural records found in this category.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -16,7 +16,7 @@ export default function Dashboard() {
   
   const [stats, setStats] = useState({
     avgMatch: 0,
-    activeEngines: 0,
+    personalScans: 0,
     totalProcessed: 0,
     reach: 0,
     trend: 0
@@ -29,40 +29,33 @@ export default function Dashboard() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // 1. SYNC USER IDENTITY
-      axios.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => setUserName(res.data?.name || 'Rudra'))
-        .catch(err => console.error("Identity Sync Failed", err));
-
-      // 2. FETCH ALL HISTORY (PRIMARY DATA SOURCE)
-      // This is the endpoint that is confirmed WORKING in the View All hub
-      axios.get('/api/resume/all-history', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
-          const allData = res.data || [];
-          // Dashboard Trajectories: SHOW ALL past records as requested
-          setHistory(allData); 
-          // Global Ecosystem Sidebar: SHOW LAST 5 only as requested
-          setGlobalEcosystem(allData.slice(0, 5));
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error("Data Pipeline Interrupted", err);
-          setLoading(false);
-        });
-
-      // 3. FETCH CALCULATIVE STATS
-      axios.get('/api/resume/stats', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => {
-          const s = res.data;
-          setStats(prev => ({
-            ...prev,
-            avgMatch: s.avgMatch || 0,
-            activeEngines: s.activeEngines || 0,
-            totalProcessed: s.totalProcessed || 0,
-            reach: 60 + (s.totalProcessed * 2)
-          }));
-        })
-        .catch(err => console.error("Stats Agent Delayed", err));
+      // 2. FETCH INTEGRATED DATA PIPELINES (Personal + Global)
+      Promise.all([
+        axios.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/api/resume/all-history', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/api/resume/global-ecosystem', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('/api/resume/global-stats', { headers: { Authorization: `Bearer ${token}` } })
+      ]).then(([userRes, historyRes, ecosystemRes, statsRes]) => {
+        setUserName(userRes.data?.name || 'Rudra');
+        setHistory(historyRes.data || []);
+        setGlobalEcosystem(ecosystemRes.data || []);
+        
+        const gStats = statsRes.data;
+        const pHistory = historyRes.data || [];
+        
+        setStats(prev => ({
+          ...prev,
+          avgMatch: gStats.avgMatch || 0,
+          personalScans: pHistory.length, // CALCULATION: Depends on User Action
+          totalProcessed: gStats.totalProcessed || 0,
+          reach: 60 + (gStats.totalProcessed * 2)
+        }));
+        
+        setLoading(false);
+      }).catch(err => {
+        console.error("Neural Data Pipeline Interrupted", err);
+        setLoading(false);
+      });
     };
     fetchDashboardData();
   }, []);
@@ -80,8 +73,12 @@ export default function Dashboard() {
   const getTimeAgo = (date) => {
     if (!date) return 'Just now';
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    }
     return new Date(date).toLocaleDateString();
   };
 
@@ -97,19 +94,23 @@ export default function Dashboard() {
              <div style={{display: 'flex', alignItems: 'flex-end', gap: '15px'}}>
                 <div>
                    <div style={{fontSize: '14px', color: 'var(--primary)', opacity: 0.7}}>Avg. Accuracy</div>
-                   <div style={{fontSize: '52px', fontWeight: 'bold', lineHeight: '1'}}>{stats.avgMatch}%</div>
+                   <div style={{fontSize: '52px', fontWeight: 'bold', lineHeight: '1'}} className={loading ? "pulse-slow" : ""}>
+                    {loading ? "---" : `${stats.avgMatch}%`}
+                   </div>
                 </div>
-                <div style={{
-                  color: stats.trend >= 0 ? '#00E676' : '#ff1744', 
-                  fontSize: '18px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px'
-                }}>
-                   {stats.trend >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                   {stats.trend > 0 ? `+${stats.trend}` : stats.trend}%
-                </div>
+                {!loading && (
+                  <div style={{
+                    color: stats.trend >= 0 ? '#00E676' : '#ff1744', 
+                    fontSize: '18px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px'
+                  }}>
+                    {stats.trend >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                    {stats.trend > 0 ? `+${stats.trend}` : stats.trend}%
+                  </div>
+                )}
              </div>
              <div style={{marginTop: '20px', fontSize: '12px', letterSpacing: '1px'}}>
-                <span style={{color: 'var(--text-muted)'}}>Reach: {stats.reach} </span>
-                <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>{stats.avgMatch >= 80 ? 'OPTIMIZED' : 'ANALYZING'}</span>
+                <span style={{color: 'var(--text-muted)'}}>Reach: {loading ? "CALIBRATING..." : stats.reach} </span>
+                <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>{loading ? "" : (stats.avgMatch >= 80 ? 'OPTIMIZED' : 'ANALYZING')}</span>
              </div>
              <Activity style={{position: 'absolute', right: '30px', bottom: '30px', opacity: 0.3}} size={64} className="pulse-slow" color="var(--primary)" />
           </div>
@@ -117,15 +118,19 @@ export default function Dashboard() {
           <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
              <div className="glass-card" style={{padding: '24px', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div>
-                   <div className="stat-label" style={{color: 'var(--secondary)', fontSize: '11px', letterSpacing: '2px'}}>ACTIVE ENGINES</div>
-                   <div style={{fontSize: '48px', fontWeight: 'bold', color: 'var(--secondary)'}}>{stats.activeEngines}</div>
+                   <div className="stat-label" style={{color: 'var(--secondary)', fontSize: '11px', letterSpacing: '2px'}}>PERSONAL NODES</div>
+                   <div style={{fontSize: '48px', fontWeight: 'bold', color: 'var(--secondary)'}} className={loading ? "pulse-slow" : ""}>
+                    {loading ? "--" : stats.personalScans}
+                   </div>
                 </div>
                 <Cpu size={32} color="var(--secondary)" />
              </div>
              <div className="glass-card" style={{padding: '24px', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div>
-                   <div className="stat-label" style={{color: 'var(--primary)', fontSize: '11px', letterSpacing: '2px'}}>PROCESSED</div>
-                   <div style={{fontSize: '48px', fontWeight: 'bold'}}>{stats.totalProcessed}</div>
+                   <div className="stat-label" style={{color: 'var(--primary)', fontSize: '11px', letterSpacing: '2px'}}>TOTAL PROCCESSED.</div>
+                   <div style={{fontSize: '48px', fontWeight: 'bold'}} className={loading ? "pulse-slow" : ""}>
+                    {loading ? "--" : stats.totalProcessed}
+                   </div>
                 </div>
                 <Database size={32} color="var(--text-muted)" />
              </div>

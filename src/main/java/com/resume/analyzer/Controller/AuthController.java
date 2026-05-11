@@ -31,19 +31,22 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
-            if (userRepository.findByUsername(request.getEmail()).isPresent()) {
-                return ResponseEntity.badRequest().body(new AuthResponse(null, "This email is already registered."));
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                return ResponseEntity.badRequest().body(new AuthResponse(null, "This identity (email) is already established."));
             }
 
-            User user = new User();
-            user.setUsername(request.getEmail());
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setName(request.getName());
-            user.setRole(User.Role.USER);
+            User user = User.builder()
+                    .email(request.getEmail())
+                    .username(request.getEmail()) // Fallback
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .name(request.getName())
+                    .role(User.Role.USER)
+                    .build();
+            
             userRepository.save(user);
 
             String jwtToken = jwtService.generateToken(user);
-            return ResponseEntity.ok(new AuthResponse(jwtToken, "User registered successfully"));
+            return ResponseEntity.ok(new AuthResponse(jwtToken, "Operator identity established successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new AuthResponse(null, "Neural Link Error: " + e.getMessage()));
         }
@@ -51,9 +54,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        java.util.Optional<User> userOpt = userRepository.findByUsername(request.getEmail());
+        java.util.Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(new AuthResponse(null, "User not found. Please register first."));
+            return ResponseEntity.status(404).body(new AuthResponse(null, "Identity not found. Please establish a link first."));
         }
 
         try {
@@ -63,10 +66,10 @@ public class AuthController {
             
             User user = userOpt.get();
             String jwtToken = jwtService.generateToken(user);
-            return ResponseEntity.ok(new AuthResponse(jwtToken, "Login successful"));
+            return ResponseEntity.ok(new AuthResponse(jwtToken, "Neural Link established"));
             
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(new AuthResponse(null, "Invalid credentials. Either email or password is wrong."));
+            return ResponseEntity.status(401).body(new AuthResponse(null, "Neural Verification Failed: Invalid credentials."));
         }
     }
 }
